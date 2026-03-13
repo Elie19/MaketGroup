@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, orderBy, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 import { Annonce, UserProfile, Group } from '../types';
 import { Trash2, Shield, User, Package, Users, AlertTriangle, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { api } from '../services/api';
 
 export default function Admin() {
   const [annonces, setAnnonces] = useState<Annonce[]>([]);
@@ -13,45 +12,64 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'annonces' | 'users' | 'groups'>('annonces');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [annSnap, userSnap, groupSnap] = await Promise.all([
-          getDocs(query(collection(db, 'annonces'), orderBy('createdAt', 'desc'))),
-          getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc'))),
-          getDocs(query(collection(db, 'groups'), orderBy('createdAt', 'desc')))
-        ]);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [annData, userData, groupData] = await Promise.all([
+        api.getAnnonces(),
+        api.getUsers(),
+        api.getGroups()
+      ]);
 
-        setAnnonces(annSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any as Annonce)));
-        setUsers(userSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any as UserProfile)));
-        setGroups(groupSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any as Group)));
-      } catch (error) {
-        console.error("Error fetching admin data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setAnnonces(annData);
+      setUsers(userData);
+      setGroups(groupData);
+    } catch (error) {
+      console.error("Error fetching admin data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
   const handleDeleteAnnonce = async (id: string) => {
     if (!window.confirm("Supprimer cette annonce définitivement ?")) return;
-    await deleteDoc(doc(db, 'annonces', id));
-    setAnnonces(annonces.filter(a => a.id !== id));
+    try {
+      await api.deleteAnnonce(id);
+      setAnnonces(annonces.filter(a => a.id !== id));
+    } catch (error) {
+      console.error("Error deleting annonce:", error);
+    }
   };
 
   const handleDeleteGroup = async (id: string) => {
     if (!window.confirm("Supprimer ce groupe définitivement ?")) return;
-    await deleteDoc(doc(db, 'groups', id));
-    setGroups(groups.filter(g => g.id !== id));
+    try {
+      await api.deleteGroup(id);
+      setGroups(groups.filter(g => g.id !== id));
+    } catch (error) {
+      console.error("Error deleting group:", error);
+    }
   };
 
   const toggleAdmin = async (user: UserProfile) => {
     const newRole = user.role === 'admin' ? 'user' : 'admin';
     if (!window.confirm(`Changer le rôle de ${user.displayName} en ${newRole} ?`)) return;
-    await updateDoc(doc(db, 'users', user.uid), { role: newRole });
-    setUsers(users.map(u => u.uid === user.uid ? { ...u, role: newRole as any } : u));
+    try {
+      await api.updateUser(user.uid, { role: newRole });
+      setUsers(users.map(u => u.uid === user.uid ? { ...u, role: newRole as any } : u));
+    } catch (error) {
+      console.error("Error updating user role:", error);
+    }
+  };
+
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return format(date, 'dd/MM/yy');
   };
 
   return (
@@ -135,7 +153,7 @@ export default function Admin() {
                       </td>
                       <td className="p-6 text-stone-600 text-sm">{a.userName}</td>
                       <td className="p-6 font-bold text-emerald-600">{a.price}€</td>
-                      <td className="p-6 text-stone-400 text-xs">{format(a.createdAt.toDate(), 'dd/MM/yy')}</td>
+                      <td className="p-6 text-stone-400 text-xs">{formatDate(a.createdAt)}</td>
                       <td className="p-6 text-right">
                         <button onClick={() => handleDeleteAnnonce(a.id)} className="p-2 text-stone-300 hover:text-red-600 transition-colors">
                           <Trash2 size={18} />
@@ -177,7 +195,7 @@ export default function Admin() {
                           {u.role}
                         </span>
                       </td>
-                      <td className="p-6 text-stone-400 text-xs">{format(u.createdAt.toDate(), 'dd/MM/yy')}</td>
+                      <td className="p-6 text-stone-400 text-xs">{formatDate(u.createdAt)}</td>
                       <td className="p-6 text-right">
                         <button onClick={() => toggleAdmin(u)} className="p-2 text-stone-300 hover:text-emerald-600 transition-colors" title="Toggle Admin">
                           <CheckCircle size={18} />
@@ -216,7 +234,7 @@ export default function Admin() {
                           {g.type}
                         </span>
                       </td>
-                      <td className="p-6 text-stone-400 text-xs">{format(g.createdAt.toDate(), 'dd/MM/yy')}</td>
+                      <td className="p-6 text-stone-400 text-xs">{formatDate(g.createdAt)}</td>
                       <td className="p-6 text-right">
                         <button onClick={() => handleDeleteGroup(g.id)} className="p-2 text-stone-300 hover:text-red-600 transition-colors">
                           <Trash2 size={18} />

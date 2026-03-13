@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, where } from 'firebase/firestore';
-import { db } from '../firebase';
 import { useAuth } from '../App';
 import { Group, GroupMessage } from '../types';
 import { Users, Plus, MessageSquare, Send, User, X, Hash } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { api } from '../services/api';
 
 export default function Groups() {
   const { user, profile } = useAuth();
@@ -21,26 +20,47 @@ export default function Groups() {
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'public' | 'private'>('public');
 
-  useEffect(() => {
-    const q = query(collection(db, 'groups'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setGroups(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group)));
+  const fetchGroups = async () => {
+    try {
+      const data = await api.getGroups();
+      if (Array.isArray(data)) {
+        setGroups(data);
+      } else {
+        console.error("API returned non-array data for groups:", data);
+        setGroups([]);
+      }
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+    } finally {
       setLoading(false);
-    });
-    return () => unsubscribe();
+    }
+  };
+
+  const fetchGroupMessages = async () => {
+    if (!selectedGroup) return;
+    try {
+      const data = await api.getGroupMessages(selectedGroup.id);
+      if (Array.isArray(data)) {
+        setMessages(data);
+      } else {
+        console.error("API returned non-array data for group messages:", data);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error("Error fetching group messages:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchGroups();
   }, []);
 
   useEffect(() => {
-    if (!selectedGroup) return;
-    const q = query(
-      collection(db, 'group_messages'),
-      where('groupId', '==', selectedGroup.id),
-      orderBy('timestamp', 'asc')
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GroupMessage)));
-    });
-    return () => unsubscribe();
+    if (selectedGroup) {
+      fetchGroupMessages();
+      const interval = setInterval(fetchGroupMessages, 5000);
+      return () => clearInterval(interval);
+    }
   }, [selectedGroup]);
 
   const handleCreateGroup = async (e: React.FormEvent) => {
@@ -48,17 +68,17 @@ export default function Groups() {
     if (!user || !name.trim()) return;
 
     try {
-      await addDoc(collection(db, 'groups'), {
+      await api.createGroup({
         name,
         description,
         type,
         creatorId: user.uid,
-        createdAt: serverTimestamp(),
         image: `https://picsum.photos/seed/${name}/400/400`
       });
       setName('');
       setDescription('');
       setIsCreating(false);
+      fetchGroups();
     } catch (error) {
       console.error("Error creating group:", error);
     }
@@ -69,17 +89,23 @@ export default function Groups() {
     if (!user || !selectedGroup || !newMessage.trim()) return;
 
     try {
-      await addDoc(collection(db, 'group_messages'), {
+      await api.sendGroupMessage({
         groupId: selectedGroup.id,
         senderId: user.uid,
         senderName: profile?.displayName || 'Utilisateur',
-        content: newMessage,
-        timestamp: serverTimestamp()
+        content: newMessage
       });
       setNewMessage('');
+      fetchGroupMessages();
     } catch (error) {
       console.error("Error sending group message:", error);
     }
+  };
+
+  const formatMessageTime = (timestamp: any) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return format(date, 'HH:mm');
   };
 
   return (
@@ -156,7 +182,7 @@ export default function Groups() {
                     <div className="flex items-center gap-2 mb-1 px-1">
                       {!isMe && <span className="text-[10px] font-bold text-emerald-600">{msg.senderName}</span>}
                       <span className="text-[10px] text-stone-400">
-                        {msg.timestamp ? format(msg.timestamp.toDate(), 'HH:mm') : ''}
+                        {formatMessageTime(msg.timestamp)}
                       </span>
                     </div>
                     <div className={`max-w-[80%] p-4 rounded-2xl shadow-sm ${isMe ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white text-stone-800 rounded-tl-none border border-stone-100'}`}>

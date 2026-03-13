@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { api } from '../services/api';
 import { Annonce, UserProfile } from '../types';
 import { useAuth } from '../App';
 import { MapPin, Calendar, User, MessageCircle, ArrowLeft, Tag, Share2, AlertCircle } from 'lucide-react';
@@ -23,16 +22,14 @@ export default function AnnonceDetail() {
     const fetchAnnonce = async () => {
       if (!id) return;
       try {
-        const docRef = doc(db, 'annonces', id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = { id: docSnap.id, ...docSnap.data() } as Annonce;
+        const data = await api.getAnnonce(id);
+        if (data) {
           setAnnonce(data);
           
           // Fetch seller info
-          const sellerSnap = await getDoc(doc(db, 'users', data.userId));
-          if (sellerSnap.exists()) {
-            setSeller(sellerSnap.data() as UserProfile);
+          const sellerData = await api.getUser(data.userId);
+          if (sellerData) {
+            setSeller(sellerData);
           }
         } else {
           navigate('/annonces');
@@ -52,11 +49,10 @@ export default function AnnonceDetail() {
 
     setSending(true);
     try {
-      await addDoc(collection(db, 'messages'), {
+      await api.sendMessage({
         senderId: user.uid,
         receiverId: annonce.userId,
         content: message,
-        timestamp: serverTimestamp(),
         annonceId: annonce.id
       });
       setSent(true);
@@ -85,6 +81,8 @@ export default function AnnonceDetail() {
   }
 
   if (!annonce) return null;
+
+  const createdAtDate = annonce.createdAt ? new Date(annonce.createdAt) : new Date();
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-20">
@@ -119,7 +117,7 @@ export default function AnnonceDetail() {
             
             <div className="flex flex-wrap gap-6 text-stone-500">
               <div className="flex items-center gap-2"><MapPin size={18} /> {annonce.location}</div>
-              <div className="flex items-center gap-2"><Calendar size={18} /> Publié le {format(annonce.createdAt.toDate(), 'PPP', { locale: fr })}</div>
+              <div className="flex items-center gap-2"><Calendar size={18} /> Publié le {format(createdAtDate, 'PPP', { locale: fr })}</div>
               <div className="flex items-center gap-2"><Tag size={18} /> {annonce.status === 'active' ? 'Disponible' : 'Vendu'}</div>
             </div>
 
@@ -149,7 +147,7 @@ export default function AnnonceDetail() {
               )}
               <div>
                 <p className="font-bold">{seller?.displayName || annonce.userName}</p>
-                <p className="text-stone-500 text-sm">Membre depuis {seller ? format(seller.createdAt.toDate(), 'MMMM yyyy', { locale: fr }) : 'récemment'}</p>
+                <p className="text-stone-500 text-sm">Membre depuis {seller ? format(new Date(seller.createdAt), 'MMMM yyyy', { locale: fr }) : 'récemment'}</p>
               </div>
             </div>
 
@@ -183,7 +181,9 @@ export default function AnnonceDetail() {
             ) : (
               <div className="bg-stone-50 p-4 rounded-xl text-center">
                 <p className="text-stone-500 text-sm mb-3">Connectez-vous pour contacter le vendeur.</p>
-                <button className="text-emerald-600 font-bold hover:underline">Se connecter</button>
+                <Link to="/login" state={{ from: { pathname: `/annonces/${annonce.id}` } }} className="text-emerald-600 font-bold hover:underline">
+                  Se connecter
+                </Link>
               </div>
             )}
           </div>
@@ -192,3 +192,4 @@ export default function AnnonceDetail() {
     </div>
   );
 }
+

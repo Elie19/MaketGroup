@@ -10,13 +10,8 @@ export default function Navbar() {
   const { user, profile, isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Login error:", error);
-    }
+  const handleLogin = () => {
+    navigate('/login');
   };
 
   const handleLogout = async () => {
@@ -74,13 +69,20 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            <button 
-              onClick={handleLogin}
-              className="flex items-center space-x-2 bg-emerald-600 text-white px-4 py-2 rounded-full hover:bg-emerald-700 transition-all shadow-sm font-medium"
-            >
-              <LogIn size={18} />
-              <span>Connexion</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={handleLogin}
+                className="text-stone-600 hover:text-emerald-600 font-medium px-4 py-2 transition-colors"
+              >
+                Connexion
+              </button>
+              <button 
+                onClick={handleLogin}
+                className="flex items-center space-x-2 bg-emerald-600 text-white px-5 py-2.5 rounded-full hover:bg-emerald-700 transition-all shadow-md font-bold text-sm"
+              >
+                <span>S'inscrire</span>
+              </button>
+            </div>
           )}
         </div>
       </div>

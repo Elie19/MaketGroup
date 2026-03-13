@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 import { useAuth } from '../App';
 import { Message, UserProfile } from '../types';
 import { Send, User, Search, ArrowLeft, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { api } from '../services/api';
 
 export default function Messages() {
   const { user } = useAuth();
@@ -15,40 +14,21 @@ export default function Messages() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchConversations = async () => {
     if (!user) return;
-
-    // This is a simplified conversation fetcher
-    // In a real app, you'd have a 'conversations' collection
-    const q = query(
-      collection(db, 'messages'),
-      where('receiverId', '==', user.uid),
-      orderBy('timestamp', 'desc')
-    );
-
-    const q2 = query(
-      collection(db, 'messages'),
-      where('senderId', '==', user.uid),
-      orderBy('timestamp', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
-      processConversations(msgs);
-    });
-
-    const unsubscribe2 = onSnapshot(q2, async (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
-      processConversations(msgs);
-    });
-
-    const processConversations = async (msgs: Message[]) => {
+    try {
+      const msgs = await api.getUserMessages(user.uid);
+      if (!Array.isArray(msgs)) {
+        console.error("API returned non-array data for user messages:", msgs);
+        setConversations([]);
+        return;
+      }
       const convMap = new Map();
+      
       for (const m of msgs) {
         const otherId = m.senderId === user.uid ? m.receiverId : m.senderId;
         if (!convMap.has(otherId)) {
-          const otherSnap = await getDoc(doc(db, 'users', otherId));
-          const otherProfile = otherSnap.exists() ? otherSnap.data() as UserProfile : null;
+          const otherProfile = await api.getUser(otherId);
           convMap.set(otherId, {
             otherId,
             otherProfile,
@@ -58,36 +38,34 @@ export default function Messages() {
         }
       }
       setConversations(Array.from(convMap.values()));
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+    } finally {
       setLoading(false);
-    };
+    }
+  };
 
-    return () => {
-      unsubscribe();
-      unsubscribe2();
-    };
+  const fetchMessages = async () => {
+    if (!selectedConv || !user) return;
+    try {
+      const msgs = await api.getConversation(user.uid, selectedConv.otherId);
+      setMessages(msgs);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchConversations();
   }, [user]);
 
   useEffect(() => {
-    if (!selectedConv || !user) return;
-
-    const q = query(
-      collection(db, 'messages'),
-      where('senderId', 'in', [user.uid, selectedConv.otherId]),
-      where('receiverId', 'in', [user.uid, selectedConv.otherId]),
-      orderBy('timestamp', 'asc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
-      // Filter manually because 'in' query might return messages between other people if IDs overlap (unlikely but safe)
-      const filtered = msgs.filter(m => 
-        (m.senderId === user.uid && m.receiverId === selectedConv.otherId) ||
-        (m.senderId === selectedConv.otherId && m.receiverId === user.uid)
-      );
-      setMessages(filtered);
-    });
-
-    return () => unsubscribe();
+    if (selectedConv) {
+      fetchMessages();
+      // Optional: Poll for new messages every 5 seconds if not using WebSockets
+      const interval = setInterval(fetchMessages, 5000);
+      return () => clearInterval(interval);
+    }
   }, [selectedConv, user]);
 
   const handleSend = async (e: React.FormEvent) => {
@@ -95,16 +73,23 @@ export default function Messages() {
     if (!user || !selectedConv || !newMessage.trim()) return;
 
     try {
-      await addDoc(collection(db, 'messages'), {
+      await api.sendMessage({
         senderId: user.uid,
         receiverId: selectedConv.otherId,
-        content: newMessage,
-        timestamp: serverTimestamp()
+        content: newMessage
       });
       setNewMessage('');
+      fetchMessages();
+      fetchConversations();
     } catch (error) {
       console.error("Error sending message:", error);
     }
+  };
+
+  const formatMessageTime = (timestamp: any) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return format(date, 'HH:mm');
   };
 
   return (
@@ -144,7 +129,7 @@ export default function Messages() {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline">
                     <p className="font-bold text-stone-900 truncate">{conv.otherProfile?.displayName || 'Utilisateur'}</p>
-                    <p className="text-[10px] text-stone-400">{conv.timestamp ? format(conv.timestamp.toDate(), 'HH:mm') : ''}</p>
+                    <p className="text-[10px] text-stone-400">{formatMessageTime(conv.timestamp)}</p>
                   </div>
                   <p className="text-sm text-stone-500 truncate">{conv.lastMessage}</p>
                 </div>
@@ -187,7 +172,7 @@ export default function Messages() {
                     <div className={`max-w-[70%] p-4 rounded-2xl shadow-sm ${isMe ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white text-stone-800 rounded-tl-none border border-stone-100'}`}>
                       <p className="text-sm leading-relaxed">{msg.content}</p>
                       <p className={`text-[10px] mt-1 ${isMe ? 'text-emerald-200' : 'text-stone-400'}`}>
-                        {msg.timestamp ? format(msg.timestamp.toDate(), 'HH:mm') : ''}
+                        {formatMessageTime(msg.timestamp)}
                       </p>
                     </div>
                   </div>

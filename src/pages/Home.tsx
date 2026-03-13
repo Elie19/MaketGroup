@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { api } from '../services/api';
 import { Annonce } from '../types';
 import { ArrowRight, Search, Tag, Users, MessageCircle } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -13,10 +12,13 @@ export default function Home() {
   useEffect(() => {
     const fetchAnnonces = async () => {
       try {
-        const q = query(collection(db, 'annonces'), orderBy('createdAt', 'desc'), limit(4));
-        const snapshot = await getDocs(q);
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Annonce));
-        setFeaturedAnnonces(data);
+        const data = await api.getAnnonces('Toutes', 4);
+        if (Array.isArray(data)) {
+          setFeaturedAnnonces(data);
+        } else {
+          console.error("API returned non-array data for featured annonces:", data);
+          setFeaturedAnnonces([]);
+        }
       } catch (error) {
         console.error("Error fetching annonces:", error);
       } finally {

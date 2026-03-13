@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from './firebase';
+import { auth } from './firebase';
 import { UserProfile } from './types';
+import { api } from './services/api';
 
 // Pages
 import Home from './pages/Home';
@@ -13,6 +13,7 @@ import Profile from './pages/Profile';
 import Messages from './pages/Messages';
 import Groups from './pages/Groups';
 import Admin from './pages/Admin';
+import Login from './pages/Login';
 import Navbar from './components/Navbar';
 
 interface AuthContextType {
@@ -26,30 +27,43 @@ const AuthContext = createContext<AuthContextType>({ user: null, profile: null, 
 
 export const useAuth = () => useContext(AuthContext);
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Health check
+    fetch('/api/health')
+      .then(r => r.json())
+      .then(data => console.log("Server Health:", data))
+      .catch(err => console.error("Server Health Check Failed:", err));
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          setProfile(userDoc.data() as UserProfile);
-        } else {
-          // Create profile if it doesn't exist
-          const newProfile: UserProfile = {
-            uid: firebaseUser.uid,
-            displayName: firebaseUser.displayName || 'Utilisateur',
-            email: firebaseUser.email || '',
-            photoURL: firebaseUser.photoURL || undefined,
-            role: 'user',
-            createdAt: serverTimestamp(),
-          };
-          await setDoc(doc(db, 'users', firebaseUser.uid), newProfile);
-          setProfile(newProfile);
+        try {
+          let userProfile = await api.getUser(firebaseUser.uid);
+          if (!userProfile) {
+            // Create profile if it doesn't exist in MongoDB
+            userProfile = await api.createUser({
+              uid: firebaseUser.uid,
+              displayName: firebaseUser.displayName || 'Utilisateur',
+              email: firebaseUser.email || '',
+              photoURL: firebaseUser.photoURL || undefined,
+              role: 'user',
+            });
+          }
+          setProfile(userProfile);
+        } catch (err) {
+          console.error("Error syncing user profile:", err);
         }
       } else {
         setProfile(null);
@@ -80,9 +94,10 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/annonces" element={<Annonces />} />
               <Route path="/annonces/:id" element={<AnnonceDetail />} />
-              <Route path="/profile" element={user ? <Profile /> : <Navigate to="/" />} />
-              <Route path="/messages" element={user ? <Messages /> : <Navigate to="/" />} />
-              <Route path="/groups" element={user ? <Groups /> : <Navigate to="/" />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+              <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
               <Route path="/admin" element={isAdmin ? <Admin /> : <Navigate to="/" />} />
             </Routes>
           </main>

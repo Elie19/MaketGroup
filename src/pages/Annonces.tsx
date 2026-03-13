@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
-import { db } from '../firebase';
+import { api } from '../services/api';
 import { Annonce } from '../types';
 import { CATEGORIES } from '../constants';
 import { Search, Filter, Plus, MapPin } from 'lucide-react';
@@ -18,22 +17,19 @@ export default function Annonces() {
     const fetchAnnonces = async () => {
       setLoading(true);
       try {
-        let q = query(collection(db, 'annonces'), orderBy('createdAt', 'desc'));
+        const data = await api.getAnnonces(selectedCategory);
         
-        if (selectedCategory !== 'Toutes') {
-          q = query(collection(db, 'annonces'), where('category', '==', selectedCategory), orderBy('createdAt', 'desc'));
+        // Ensure data is an array before filtering
+        if (Array.isArray(data)) {
+          const filtered = data.filter((a: Annonce) => 
+            a.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            a.description.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+          setAnnonces(filtered);
+        } else {
+          console.error("API returned non-array data:", data);
+          setAnnonces([]);
         }
-
-        const snapshot = await getDocs(q);
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Annonce));
-        
-        // Client-side search filtering
-        const filtered = data.filter(a => 
-          a.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-          a.description.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        
-        setAnnonces(filtered);
       } catch (error) {
         console.error("Error fetching annonces:", error);
       } finally {

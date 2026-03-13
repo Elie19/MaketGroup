@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { api } from '../services/api';
 import { useAuth } from '../App';
 import { Annonce } from '../types';
 import { CATEGORIES } from '../constants';
@@ -27,9 +26,13 @@ export default function Profile() {
     const fetchMyAnnonces = async () => {
       if (!user) return;
       try {
-        const q = query(collection(db, 'annonces'), where('userId', '==', user.uid));
-        const snapshot = await getDocs(q);
-        setMyAnnonces(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const data = await api.getUserAnnonces(user.uid);
+        if (Array.isArray(data)) {
+          setMyAnnonces(data);
+        } else {
+          console.error("API returned non-array data for user annonces:", data);
+          setMyAnnonces([]);
+        }
       } catch (error) {
         console.error("Error fetching my annonces:", error);
       } finally {
@@ -54,12 +57,11 @@ export default function Profile() {
         photos: [photoUrl || "https://picsum.photos/seed/" + Math.random() + "/800/600"],
         userId: user.uid,
         userName: profile?.displayName || 'Utilisateur',
-        createdAt: serverTimestamp(),
         status: 'active'
       };
 
-      const docRef = await addDoc(collection(db, 'annonces'), newAnnonce);
-      setMyAnnonces([{ id: docRef.id, ...newAnnonce, createdAt: { toDate: () => new Date() } }, ...myAnnonces]);
+      const created = await api.createAnnonce(newAnnonce);
+      setMyAnnonces([created, ...myAnnonces]);
       
       // Reset form
       setTitle('');
@@ -79,12 +81,14 @@ export default function Profile() {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Voulez-vous vraiment supprimer cette annonce ?")) return;
     try {
-      await deleteDoc(doc(db, 'annonces', id));
-      setMyAnnonces(myAnnonces.filter(a => a.id !== id));
+      await api.deleteAnnonce(id);
+      setMyAnnonces(myAnnonces.filter(a => a._id !== id));
     } catch (error) {
       console.error("Error deleting annonce:", error);
     }
   };
+
+  const memberSince = profile?.createdAt ? new Date(profile.createdAt) : new Date();
 
   return (
     <div className="max-w-5xl mx-auto space-y-12">
@@ -110,7 +114,7 @@ export default function Profile() {
               <span className="font-bold text-emerald-600">{myAnnonces.length}</span> Annonces
             </div>
             <div className="bg-stone-50 px-4 py-2 rounded-xl text-sm font-medium text-stone-600 border border-stone-100">
-              Membre depuis {profile ? format(profile.createdAt.toDate(), 'MMMM yyyy', { locale: fr }) : '...'}
+              Membre depuis {format(memberSince, 'MMMM yyyy', { locale: fr })}
             </div>
           </div>
         </div>
@@ -133,7 +137,7 @@ export default function Profile() {
         ) : myAnnonces.length > 0 ? (
           <div className="grid sm:grid-cols-2 gap-6">
             {myAnnonces.map(annonce => (
-              <div key={annonce.id} className="bg-white p-4 rounded-2xl border border-stone-100 shadow-sm flex gap-4 group">
+              <div key={annonce._id} className="bg-white p-4 rounded-2xl border border-stone-100 shadow-sm flex gap-4 group">
                 <div className="w-32 h-32 rounded-xl overflow-hidden bg-stone-100 flex-shrink-0">
                   <img 
                     src={annonce.photos[0]} 
@@ -152,7 +156,7 @@ export default function Profile() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button className="text-stone-400 hover:text-emerald-600 transition-colors p-1"><Edit2 size={18} /></button>
-                    <button onClick={() => handleDelete(annonce.id)} className="text-stone-400 hover:text-red-600 transition-colors p-1"><Trash2 size={18} /></button>
+                    <button onClick={() => handleDelete(annonce._id)} className="text-stone-400 hover:text-red-600 transition-colors p-1"><Trash2 size={18} /></button>
                   </div>
                 </div>
               </div>
@@ -265,3 +269,4 @@ export default function Profile() {
     </div>
   );
 }
+
