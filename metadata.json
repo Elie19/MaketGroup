@@ -1,0 +1,8 @@
+{
+  "name": "MarketGroup",
+  "description": "Plateforme d'annonces classées et de groupes de discussion en temps réel avec messagerie intégrée.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
