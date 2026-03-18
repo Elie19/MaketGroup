@@ -1,134 +1,137 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { adService } from '../services/adService';
+import { AdListing } from '../types';
 import { Link } from 'react-router-dom';
-import { api } from '../services/api';
-import { Annonce } from '../types';
-import { ArrowRight, Search, Tag, Users, MessageCircle } from 'lucide-react';
 import { motion } from 'motion/react';
+import { MapPin, Tag, Clock, Heart, Search } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
-export default function Home() {
-  const [featuredAnnonces, setFeaturedAnnonces] = useState<Annonce[]>([]);
+export const Home = () => {
+  const [ads, setAds] = useState<AdListing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [category, setCategory] = useState<string>('All');
+
+  const categories = ['All', 'Electronics', 'Real Estate', 'Vehicles', 'Services', 'Jobs', 'Fashion'];
 
   useEffect(() => {
-    const fetchAnnonces = async () => {
-      try {
-        const data = await api.getAnnonces('Toutes', 4);
-        if (Array.isArray(data)) {
-          setFeaturedAnnonces(data);
-        } else {
-          console.error("API returned non-array data for featured annonces:", data);
-          setFeaturedAnnonces([]);
-        }
-      } catch (error) {
-        console.error("Error fetching annonces:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAnnonces();
-  }, []);
+    const unsubscribe = adService.subscribeToAds((newAds) => {
+      setAds(newAds);
+      setLoading(false);
+    }, category !== 'All' ? { category } : undefined);
+
+    return () => unsubscribe();
+  }, [category]);
 
   return (
-    <div className="space-y-16">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-8"
+    >
       {/* Hero Section */}
-      <section className="relative h-[500px] flex items-center justify-center overflow-hidden rounded-3xl bg-stone-900 text-white">
-        <img 
-          src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=1920" 
-          alt="Marketplace" 
-          className="absolute inset-0 w-full h-full object-cover opacity-40"
-          referrerPolicy="no-referrer"
-        />
-        <div className="relative z-10 text-center max-w-3xl px-6">
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-5xl md:text-7xl font-bold mb-6 tracking-tight"
-          >
-            Vendez, Achetez, <span className="text-emerald-400">Discutez</span>.
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-xl text-stone-300 mb-8"
-          >
-            La plateforme communautaire pour trouver des services, des biens et rejoindre des groupes de passionnés.
-          </motion.p>
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex flex-wrap justify-center gap-4"
-          >
-            <Link to="/annonces" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center gap-2 shadow-lg">
-              Voir les annonces <ArrowRight size={20} />
-            </Link>
-            <Link to="/groups" className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 px-8 py-4 rounded-full font-bold text-lg transition-all">
-              Rejoindre un groupe
-            </Link>
-          </motion.div>
+      <section className="relative overflow-hidden rounded-3xl bg-zinc-900 px-8 py-16">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(16,185,129,0.1),transparent)]" />
+        <div className="relative z-10 max-w-2xl">
+          <h1 className="text-5xl font-bold tracking-tight text-white md:text-6xl">
+            Find what you need, <br />
+            <span className="text-emerald-500">share what you have.</span>
+          </h1>
+          <p className="mt-6 text-lg text-zinc-400">
+            Lumina is the modern marketplace for your community. Buy, sell, and discuss in one place.
+          </p>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="grid md:grid-cols-3 gap-8">
-        {[
-          { icon: <Tag className="text-emerald-600" size={32} />, title: "Annonces Gratuites", desc: "Publiez vos offres de services ou vos objets à vendre en quelques secondes." },
-          { icon: <MessageCircle className="text-emerald-600" size={32} />, title: "Messagerie Directe", desc: "Discutez en temps réel avec les vendeurs et les acheteurs en toute sécurité." },
-          { icon: <Users className="text-emerald-600" size={32} />, title: "Groupes Thématiques", desc: "Créez ou rejoignez des espaces de discussion pour partager vos passions." }
-        ].map((feature, i) => (
-          <div key={i} className="bg-white p-8 rounded-2xl border border-stone-100 shadow-sm hover:shadow-md transition-shadow">
-            <div className="mb-4">{feature.icon}</div>
-            <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-            <p className="text-stone-600 leading-relaxed">{feature.desc}</p>
-          </div>
+      {/* Categories */}
+      <div className="flex flex-wrap gap-2">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setCategory(cat)}
+            className={`rounded-full px-6 py-2 text-sm font-medium transition-all ${
+              category === cat
+                ? 'bg-emerald-500 text-black'
+                : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-white'
+            }`}
+          >
+            {cat}
+          </button>
         ))}
-      </section>
+      </div>
 
-      {/* Featured Annonces */}
-      <section>
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-bold tracking-tight">Dernières Annonces</h2>
-          <Link to="/annonces" className="text-emerald-600 font-semibold flex items-center gap-1 hover:underline">
-            Tout voir <ArrowRight size={16} />
-          </Link>
+      {/* Ads Grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="h-80 animate-pulse rounded-2xl bg-zinc-900" />
+          ))}
         </div>
-
-        {loading ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="bg-stone-200 animate-pulse h-80 rounded-2xl"></div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredAnnonces.map(annonce => (
-              <Link key={annonce.id} to={`/annonces/${annonce.id}`} className="group bg-white rounded-2xl border border-stone-100 overflow-hidden shadow-sm hover:shadow-md transition-all">
-                <div className="aspect-[4/3] overflow-hidden bg-stone-100">
-                  <img 
-                    src={annonce.photos[0] || "https://picsum.photos/seed/market/400/300"} 
-                    alt={annonce.title} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+      ) : (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {ads.map((ad, index) => (
+            <motion.div
+              key={ad.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Link
+                to={`/ad/${ad.id}`}
+                className="group block overflow-hidden rounded-2xl border border-white/5 bg-zinc-900 transition-all hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/5"
+              >
+                <div className="relative aspect-square overflow-hidden">
+                  <img
+                    src={ad.images[0] || `https://picsum.photos/seed/${ad.id}/400/400`}
+                    alt={ad.title}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                     referrerPolicy="no-referrer"
                   />
+                  <div className="absolute right-3 top-3">
+                    <button className="rounded-full bg-black/50 p-2 text-white backdrop-blur-md transition-colors hover:bg-emerald-500 hover:text-black">
+                      <Heart className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="absolute bottom-3 left-3">
+                    <span className="rounded-lg bg-emerald-500 px-3 py-1 text-sm font-bold text-black">
+                      ${ad.price}
+                    </span>
+                  </div>
                 </div>
                 <div className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
-                      {annonce.category.split(' - ')[0]}
-                    </span>
-                    <span className="text-lg font-bold text-stone-900">{annonce.price}€</span>
+                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-emerald-500">
+                    <Tag className="h-3 w-3" />
+                    {ad.category}
                   </div>
-                  <h3 className="font-bold text-lg mb-1 line-clamp-1 group-hover:text-emerald-600 transition-colors">{annonce.title}</h3>
-                  <p className="text-stone-500 text-sm flex items-center gap-1">
-                    <Search size={14} /> {annonce.location}
-                  </p>
+                  <h3 className="mt-1 line-clamp-1 font-semibold text-white group-hover:text-emerald-400">
+                    {ad.title}
+                  </h3>
+                  <div className="mt-3 flex items-center justify-between text-xs text-zinc-500">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {ad.location}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatDistanceToNow(new Date(ad.createdAt))} ago
+                    </div>
+                  </div>
                 </div>
               </Link>
-            ))}
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {!loading && ads.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="rounded-full bg-zinc-900 p-6">
+            <Search className="h-12 w-12 text-zinc-700" />
           </div>
-        )}
-      </section>
-    </div>
+          <h3 className="mt-4 text-xl font-semibold text-white">No ads found</h3>
+          <p className="mt-2 text-zinc-500">Try changing your filters or search query.</p>
+        </div>
+      )}
+    </motion.div>
   );
-}
+};

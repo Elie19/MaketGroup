@@ -1,8 +1,9 @@
 {
-  "name": "MarketGroup",
-  "description": "Plateforme d'annonces classées et de groupes de discussion en temps réel avec messagerie intégrée.",
+  "name": "Lumina - Ads & Discussions",
+  "description": "A modern platform for publishing ads, real-time messaging, and community discussion groups.",
   "requestFramePermissions": [
     "camera",
+    "microphone",
     "geolocation"
   ]
 }

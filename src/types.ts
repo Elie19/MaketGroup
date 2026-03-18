@@ -2,53 +2,55 @@ export type UserRole = 'user' | 'admin';
 
 export interface UserProfile {
   uid: string;
-  displayName: string;
-  email: string;
-  photoURL?: string;
-  phoneNumber?: string;
+  displayName: string | null;
+  email: string | null;
+  photoURL: string | null;
+  bio?: string;
   location?: string;
   role: UserRole;
-  createdAt: any; // Timestamp
+  createdAt: string;
 }
 
-export interface Annonce {
+export interface AdListing {
   id: string;
   title: string;
   description: string;
-  category: string;
   price: number;
-  photos: string[];
+  category: string;
   location: string;
-  userId: string;
-  userName: string;
-  createdAt: any; // Timestamp
+  images: string[];
+  authorId: string;
+  authorName: string;
+  createdAt: string;
   status: 'active' | 'sold' | 'deleted';
+  favoritesCount: number;
 }
 
 export interface Message {
   id: string;
+  text: string;
   senderId: string;
-  receiverId: string;
-  content: string;
-  timestamp: any; // Timestamp
-  annonceId?: string;
+  senderName: string;
+  senderPhoto?: string;
+  chatId: string;
+  createdAt: string;
+  attachments?: string[];
 }
 
-export interface Group {
+export interface ChatGroup {
   id: string;
   name: string;
   description: string;
-  creatorId: string;
-  image?: string;
-  type: 'public' | 'private';
-  createdAt: any; // Timestamp
+  category: string;
+  adminId: string;
+  members: string[];
+  createdAt: string;
+  photoURL?: string;
 }
 
-export interface GroupMessage {
+export interface ChatSession {
   id: string;
-  groupId: string;
-  senderId: string;
-  senderName: string;
-  content: string;
-  timestamp: any; // Timestamp
+  participants: string[];
+  lastMessage?: Message;
+  updatedAt: string;
 }

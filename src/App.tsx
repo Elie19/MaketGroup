@@ -1,108 +1,79 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from './firebase';
-import { UserProfile } from './types';
-import { api } from './services/api';
-
-// Pages
-import Home from './pages/Home';
-import Annonces from './pages/Annonces';
-import AnnonceDetail from './pages/AnnonceDetail';
-import Profile from './pages/Profile';
-import Messages from './pages/Messages';
-import Groups from './pages/Groups';
-import Admin from './pages/Admin';
-import Login from './pages/Login';
-import Navbar from './components/Navbar';
-
-interface AuthContextType {
-  user: User | null;
-  profile: UserProfile | null;
-  loading: boolean;
-  isAdmin: boolean;
-}
-
-const AuthContext = createContext<AuthContextType>({ user: null, profile: null, loading: true, isAdmin: false });
-
-export const useAuth = () => useContext(AuthContext);
-
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) return null;
-  if (!user) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-}
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useAuthStore } from './store/useAuthStore';
+import { useThemeStore } from './store/useThemeStore';
+import { Navbar } from './components/Navbar';
+import { Home } from './pages/Home';
+import { Messaging } from './pages/Messaging';
+import { Groups } from './pages/Groups';
+import { Profile } from './pages/Profile';
+import { AdDetail } from './pages/AdDetail';
+import { CreateAd } from './pages/CreateAd';
+import { motion, AnimatePresence } from 'motion/react';
+import { cn } from './lib/utils';
 
 export default function App() {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { init, initialized, loading } = useAuthStore();
+  const { theme } = useThemeStore();
 
   useEffect(() => {
-    // Health check
-    fetch('/api/health')
-      .then(r => r.json())
-      .then(data => console.log("Server Health:", data))
-      .catch(err => console.error("Server Health Check Failed:", err));
+    init();
+  }, [init]);
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      if (firebaseUser) {
-        try {
-          let userProfile = await api.getUser(firebaseUser.uid);
-          if (!userProfile) {
-            // Create profile if it doesn't exist in MongoDB
-            userProfile = await api.createUser({
-              uid: firebaseUser.uid,
-              displayName: firebaseUser.displayName || 'Utilisateur',
-              email: firebaseUser.email || '',
-              photoURL: firebaseUser.photoURL || undefined,
-              role: 'user',
-            });
-          }
-          setProfile(userProfile);
-        } catch (err) {
-          console.error("Error syncing user profile:", err);
-        }
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
-    });
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
-    return () => unsubscribe();
-  }, []);
-
-  const isAdmin = profile?.role === 'admin';
-
-  if (loading) {
+  if (!initialized && loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-600"></div>
+      <div className="flex h-screen w-full items-center justify-center bg-white dark:bg-black">
+        <motion.div
+          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="h-12 w-12 rounded-xl bg-emerald-500"
+        />
       </div>
     );
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin }}>
-      <Router>
-        <div className="min-h-screen bg-stone-50 text-stone-900 font-sans">
-          <Navbar />
-          <main className="container mx-auto px-4 py-8">
+    <Router>
+      <div className={cn(
+        "min-h-screen transition-colors duration-300",
+        "bg-zinc-50 text-zinc-900 selection:bg-emerald-500/30",
+        "dark:bg-black dark:text-zinc-100"
+      )}>
+        <Navbar />
+        <main className="mx-auto max-w-7xl px-4 py-8">
+          <AnimatePresence mode="wait">
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/annonces" element={<Annonces />} />
-              <Route path="/annonces/:id" element={<AnnonceDetail />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-              <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
-              <Route path="/admin" element={isAdmin ? <Admin /> : <Navigate to="/" />} />
+              <Route path="/messages" element={<Messaging />} />
+              <Route path="/groups" element={<Groups />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/ad/:id" element={<AdDetail />} />
+              <Route path="/create-ad" element={<CreateAd />} />
             </Routes>
-          </main>
-        </div>
-      </Router>
-    </AuthContext.Provider>
+          </AnimatePresence>
+        </main>
+        
+        {/* Footer */}
+        <footer className="mt-20 border-t border-zinc-200 dark:border-white/5 py-12">
+          <div className="mx-auto max-w-7xl px-4 text-center">
+            <div className="flex items-center justify-center gap-2 opacity-50">
+              <div className="h-6 w-6 rounded bg-emerald-500" />
+              <span className="font-bold">Lumina</span>
+            </div>
+            <p className="mt-4 text-sm text-zinc-500">
+              © 2026 Lumina Platform. All rights reserved.
+            </p>
+          </div>
+        </footer>
+      </div>
+    </Router>
   );
 }

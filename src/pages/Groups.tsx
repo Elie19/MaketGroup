@@ -1,292 +1,155 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../App';
-import { Group, GroupMessage } from '../types';
-import { Users, Plus, MessageSquare, Send, User, X, Hash } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { api } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { groupService } from '../services/groupService';
+import { useAuthStore } from '../store/useAuthStore';
+import { ChatGroup } from '../types';
+import { motion } from 'motion/react';
+import { Users, Plus, Search, MessageSquare, ArrowRight } from 'lucide-react';
 
-export default function Groups() {
-  const { user, profile } = useAuth();
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const [messages, setMessages] = useState<GroupMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
+export const Groups = () => {
+  const { user } = useAuthStore();
+  const [groups, setGroups] = useState<ChatGroup[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // New group form state
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [type, setType] = useState<'public' | 'private'>('public');
-
-  const fetchGroups = async () => {
-    try {
-      const data = await api.getGroups();
-      if (Array.isArray(data)) {
-        setGroups(data);
-      } else {
-        console.error("API returned non-array data for groups:", data);
-        setGroups([]);
-      }
-    } catch (error) {
-      console.error("Error fetching groups:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchGroupMessages = async () => {
-    if (!selectedGroup) return;
-    try {
-      const data = await api.getGroupMessages(selectedGroup.id);
-      if (Array.isArray(data)) {
-        setMessages(data);
-      } else {
-        console.error("API returned non-array data for group messages:", data);
-        setMessages([]);
-      }
-    } catch (error) {
-      console.error("Error fetching group messages:", error);
-    }
-  };
+  const [showCreate, setShowCreate] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDesc, setNewGroupDesc] = useState('');
 
   useEffect(() => {
-    fetchGroups();
-  }, []);
-
-  useEffect(() => {
-    if (selectedGroup) {
-      fetchGroupMessages();
-      const interval = setInterval(fetchGroupMessages, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [selectedGroup]);
+    if (!user) return;
+    const unsubscribe = groupService.subscribeToGroups(setGroups);
+    setLoading(false);
+    return () => unsubscribe();
+  }, [user]);
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !name.trim()) return;
+    if (!user || !newGroupName.trim()) return;
 
-    try {
-      await api.createGroup({
-        name,
-        description,
-        type,
-        creatorId: user.uid,
-        image: `https://picsum.photos/seed/${name}/400/400`
-      });
-      setName('');
-      setDescription('');
-      setIsCreating(false);
-      fetchGroups();
-    } catch (error) {
-      console.error("Error creating group:", error);
-    }
+    await groupService.createGroup({
+      name: newGroupName,
+      description: newGroupDesc,
+      category: 'General',
+      adminId: user.id
+    });
+    setNewGroupName('');
+    setNewGroupDesc('');
+    setShowCreate(false);
   };
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !selectedGroup || !newMessage.trim()) return;
-
-    try {
-      await api.sendGroupMessage({
-        groupId: selectedGroup.id,
-        senderId: user.uid,
-        senderName: profile?.displayName || 'Utilisateur',
-        content: newMessage
-      });
-      setNewMessage('');
-      fetchGroupMessages();
-    } catch (error) {
-      console.error("Error sending group message:", error);
-    }
-  };
-
-  const formatMessageTime = (timestamp: any) => {
-    if (!timestamp) return '';
-    const date = new Date(timestamp);
-    return format(date, 'HH:mm');
+  const handleJoin = async (groupId: string) => {
+    if (!user) return;
+    await groupService.joinGroup(groupId, user.id);
   };
 
   return (
-    <div className="h-[calc(100vh-160px)] bg-white rounded-3xl border border-stone-100 shadow-sm overflow-hidden flex">
-      {/* Sidebar */}
-      <div className={`w-full md:w-80 border-r border-stone-100 flex flex-col ${selectedGroup ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-6 border-b border-stone-100 flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Groupes</h2>
-          <button 
-            onClick={() => setIsCreating(true)}
-            className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-colors"
-          >
-            <Plus size={20} />
-          </button>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-8"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Community Groups</h1>
+          <p className="mt-2 text-zinc-400">Join discussions and meet people with similar interests.</p>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="p-4 space-y-4">
-              {[1, 2, 3].map(i => <div key={i} className="h-16 bg-stone-50 animate-pulse rounded-xl"></div>)}
-            </div>
-          ) : groups.length > 0 ? (
-            groups.map(group => (
-              <button 
-                key={group.id}
-                onClick={() => setSelectedGroup(group)}
-                className={`w-full p-4 flex items-center gap-4 hover:bg-stone-50 transition-colors border-b border-stone-50 text-left ${selectedGroup?.id === group.id ? 'bg-emerald-50/50' : ''}`}
-              >
-                <div className="w-12 h-12 rounded-2xl bg-stone-100 overflow-hidden flex-shrink-0">
-                  <img src={group.image} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-stone-900 truncate">{group.name}</p>
-                  <p className="text-xs text-stone-500 truncate">{group.description}</p>
-                </div>
-              </button>
-            ))
-          ) : (
-            <div className="p-8 text-center text-stone-400">
-              <p>Aucun groupe disponible</p>
-            </div>
-          )}
-        </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 font-bold text-black transition-transform hover:scale-105"
+        >
+          <Plus className="h-5 w-5" />
+          Create Group
+        </button>
       </div>
 
-      {/* Chat Area */}
-      <div className={`flex-1 flex flex-col ${!selectedGroup ? 'hidden md:flex' : 'flex'}`}>
-        {selectedGroup ? (
-          <>
-            <div className="p-4 border-b border-stone-100 flex items-center justify-between bg-white">
-              <div className="flex items-center gap-4">
-                <button onClick={() => setSelectedGroup(null)} className="md:hidden p-2 text-stone-400 hover:text-emerald-600">
-                  <Plus size={20} className="rotate-45" />
-                </button>
-                <div className="w-10 h-10 rounded-xl bg-stone-100 overflow-hidden">
-                  <img src={selectedGroup.image} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                </div>
-                <div>
-                  <p className="font-bold text-stone-900">{selectedGroup.name}</p>
-                  <p className="text-xs text-stone-500">{selectedGroup.description}</p>
-                </div>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {groups.map((group) => (
+          <motion.div
+            key={group.id}
+            layoutId={group.id}
+            className="group overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition-all hover:border-emerald-500/30"
+          >
+            <div className="h-32 bg-gradient-to-br from-emerald-500/20 to-zinc-800" />
+            <div className="relative p-6">
+              <div className="absolute -top-8 left-6 flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-zinc-900 bg-zinc-800 shadow-xl">
+                <Users className="h-8 w-8 text-emerald-500" />
               </div>
-              <div className="flex items-center gap-2">
-                <div className="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
-                  {selectedGroup.type}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-stone-50/50">
-              {messages.map((msg, i) => {
-                const isMe = msg.senderId === user?.uid;
-                return (
-                  <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                    <div className="flex items-center gap-2 mb-1 px-1">
-                      {!isMe && <span className="text-[10px] font-bold text-emerald-600">{msg.senderName}</span>}
-                      <span className="text-[10px] text-stone-400">
-                        {formatMessageTime(msg.timestamp)}
-                      </span>
-                    </div>
-                    <div className={`max-w-[80%] p-4 rounded-2xl shadow-sm ${isMe ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white text-stone-800 rounded-tl-none border border-stone-100'}`}>
-                      <p className="text-sm leading-relaxed">{msg.content}</p>
-                    </div>
+              <div className="mt-8">
+                <h3 className="text-xl font-bold text-white">{group.name}</h3>
+                <p className="mt-2 line-clamp-2 text-sm text-zinc-500">
+                  {group.description}
+                </p>
+                <div className="mt-6 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-zinc-500">
+                    <Users className="h-4 w-4" />
+                    {group.members.length} members
                   </div>
-                );
-              })}
+                  {group.members.includes(user?.id || '') ? (
+                    <button className="flex items-center gap-2 text-sm font-bold text-emerald-500">
+                      View Chat
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleJoin(group.id)}
+                      className="rounded-lg bg-white px-4 py-2 text-xs font-bold text-black hover:bg-zinc-200"
+                    >
+                      Join Group
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-
-            <form onSubmit={handleSend} className="p-4 bg-white border-t border-stone-100 flex gap-4">
-              <input 
-                type="text" 
-                placeholder="Écrivez dans le groupe..." 
-                className="flex-1 bg-stone-50 rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500/20 outline-none border-none"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-              />
-              <button 
-                type="submit" 
-                className="bg-emerald-600 text-white p-3 rounded-xl hover:bg-emerald-700 transition-all shadow-md"
-              >
-                <Send size={20} />
-              </button>
-            </form>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-stone-300 p-8 text-center">
-            <div className="w-20 h-20 rounded-full bg-stone-50 flex items-center justify-center mb-4">
-              <Users size={40} />
-            </div>
-            <h3 className="text-xl font-bold text-stone-400">Rejoignez la discussion</h3>
-            <p className="max-w-xs">Sélectionnez un groupe pour voir les messages et participer.</p>
-          </div>
-        )}
+          </motion.div>
+        ))}
       </div>
 
       {/* Create Group Modal */}
-      {isCreating && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-stone-100 flex items-center justify-between bg-stone-50">
-              <h3 className="text-xl font-bold">Créer un groupe</h3>
-              <button onClick={() => setIsCreating(false)} className="p-2 hover:bg-stone-200 rounded-full transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleCreateGroup} className="p-8 space-y-6">
+      {showCreate && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-md rounded-3xl border border-white/10 bg-zinc-900 p-8 shadow-2xl"
+          >
+            <h2 className="text-2xl font-bold text-white">Create Group</h2>
+            <form onSubmit={handleCreateGroup} className="mt-6 space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-stone-700">Nom du groupe</label>
-                <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
-                  <input 
-                    type="text" 
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-                    placeholder="Ex: Passion Jardinage"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-stone-700">Description</label>
-                <textarea 
-                  className="w-full p-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none min-h-[100px]"
-                  placeholder="De quoi parle ce groupe ?"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Group Name</label>
+                <input
                   required
-                ></textarea>
+                  type="text"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-black p-4 text-white focus:border-emerald-500 focus:outline-none"
+                />
               </div>
-
               <div className="space-y-2">
-                <label className="text-sm font-bold text-stone-700">Type de groupe</label>
-                <div className="flex gap-4">
-                  <button 
-                    type="button"
-                    onClick={() => setType('public')}
-                    className={`flex-1 py-3 rounded-xl font-bold border transition-all ${type === 'public' ? 'bg-emerald-50 border-emerald-600 text-emerald-700' : 'bg-white border-stone-200 text-stone-500'}`}
-                  >
-                    Public
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => setType('private')}
-                    className={`flex-1 py-3 rounded-xl font-bold border transition-all ${type === 'private' ? 'bg-emerald-50 border-emerald-600 text-emerald-700' : 'bg-white border-stone-200 text-stone-500'}`}
-                  >
-                    Privé
-                  </button>
-                </div>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Description</label>
+                <textarea
+                  rows={3}
+                  value={newGroupDesc}
+                  onChange={(e) => setNewGroupDesc(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-black p-4 text-white focus:border-emerald-500 focus:outline-none"
+                />
               </div>
-
-              <button 
-                type="submit" 
-                className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20"
-              >
-                Créer le groupe
-              </button>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCreate(false)}
+                  className="flex-1 rounded-xl border border-white/10 py-4 font-bold text-zinc-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 rounded-xl bg-emerald-500 py-4 font-bold text-black"
+                >
+                  Create
+                </button>
+              </div>
             </form>
-          </div>
+          </motion.div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
-}
+};
