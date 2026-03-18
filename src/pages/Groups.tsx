@@ -27,7 +27,7 @@ export const Groups = () => {
     await groupService.createGroup({
       name: newGroupName,
       description: newGroupDesc,
-      category: 'General',
+      category: 'Général',
       adminId: user.id
     });
     setNewGroupName('');
@@ -53,15 +53,15 @@ export const Groups = () => {
     >
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Community Groups</h1>
-          <p className="mt-2 text-zinc-500 dark:text-zinc-400">Join discussions and meet people with similar interests.</p>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Groupes Communautaires</h1>
+          <p className="mt-2 text-zinc-500 dark:text-zinc-400">Rejoignez des discussions et rencontrez des personnes partageant les mêmes intérêts.</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 font-bold text-black transition-transform hover:scale-105"
         >
           <Plus className="h-5 w-5" />
-          Create Group
+          Créer un Groupe
         </button>
       </div>
 
@@ -85,11 +85,11 @@ export const Groups = () => {
                 <div className="mt-6 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs text-zinc-500">
                     <Users className="h-4 w-4" />
-                    {group.members.length} members
+                    {group.members.length} membres
                   </div>
                   {group.members.includes(user?.id || '') ? (
                     <button className="flex items-center gap-2 text-sm font-bold text-emerald-500">
-                      View Chat
+                      Voir le Chat
                       <ArrowRight className="h-4 w-4" />
                     </button>
                   ) : (
@@ -98,7 +98,7 @@ export const Groups = () => {
                       disabled={loading}
                       className="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-bold text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
                     >
-                      {loading ? 'Joining...' : 'Join Group'}
+                      {loading ? 'Adhésion...' : 'Rejoindre'}
                     </button>
                   )}
                 </div>
@@ -116,10 +116,10 @@ export const Groups = () => {
             animate={{ scale: 1, opacity: 1 }}
             className="w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-8 shadow-2xl dark:border-white/10 dark:bg-zinc-900"
           >
-            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Create Group</h2>
+            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Créer un Groupe</h2>
             <form onSubmit={handleCreateGroup} className="mt-6 space-y-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Group Name</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Nom du Groupe</label>
                 <input
                   required
                   type="text"
@@ -143,13 +143,13 @@ export const Groups = () => {
                   onClick={() => setShowCreate(false)}
                   className="flex-1 rounded-xl border border-zinc-200 py-4 font-bold text-zinc-500 hover:text-zinc-900 dark:border-white/10 dark:text-zinc-400 dark:hover:text-white"
                 >
-                  Cancel
+                  Annuler
                 </button>
                 <button
                   type="submit"
                   className="flex-1 rounded-xl bg-emerald-500 py-4 font-bold text-black"
                 >
-                  Create
+                  Créer
                 </button>
               </div>
             </form>

@@ -32,18 +32,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   initialized: false,
   setUser: (user) => set({ user }),
   setProfile: (profile) => set({ profile }),
-  signOut: async () => {
-    await supabase.auth.signOut();
-    set({ user: null, profile: null });
-  },
   init: () => {
     console.log('Initializing Auth Store...');
-    console.log('Current URL:', window.location.href);
-    
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) console.error('Error getting session:', error);
-      console.log('Initial session result:', session);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session);
       const user = session?.user ?? null;
       set({ user, loading: !!user });
       if (user) {
@@ -165,5 +158,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ loading: false, initialized: true });
       }
     }
+  },
+  signOut: async () => {
+    await supabase.auth.signOut();
+    set({ user: null, profile: null });
   },
 }));

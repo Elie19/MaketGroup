@@ -1,137 +1,220 @@
-import React, { useState, useEffect } from 'react';
-import { adService } from '../services/adService';
-import { AdListing } from '../types';
-import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { MapPin, Tag, Clock, Heart, Search } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../store/useAuthStore';
+import { useThemeStore } from '../store/useThemeStore';
+import { supabase } from '../supabase';
+import { 
+  Home, 
+  MessageSquare, 
+  Users, 
+  PlusCircle, 
+  User, 
+  LogOut, 
+  LogIn,
+  Search,
+  Bell,
+  Sun,
+  Moon,
+  Check
+} from 'lucide-react';
+import { cn } from '../lib/utils';
+import { motion, AnimatePresence } from 'motion/react';
 
-export const Home = () => {
-  const [ads, setAds] = useState<AdListing[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState<string>('All');
+export const Navbar = () => {
+  const { user, profile, signOut } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
+  const location = useLocation();
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  const categories = ['All', 'Electronics', 'Real Estate', 'Vehicles', 'Services', 'Jobs', 'Fashion'];
+  const handleLogin = async () => {
+    // Ensure we use the current origin for redirect
+    const redirectUrl = window.location.origin;
+    console.log('Initiating login with redirect to:', redirectUrl);
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl
+      }
+    });
+    if (error) console.error('Login error:', error.message);
+  };
 
-  useEffect(() => {
-    const unsubscribe = adService.subscribeToAds((newAds) => {
-      setAds(newAds);
-      setLoading(false);
-    }, category !== 'All' ? { category } : undefined);
+  const handleLogout = async () => {
+    await signOut();
+  };
 
-    return () => unsubscribe();
-  }, [category]);
+  const navItems = [
+    { label: 'Accueil', icon: Home, path: '/' },
+    { label: 'Messages', icon: MessageSquare, path: '/messages' },
+    { label: 'Groupes', icon: Users, path: '/groups' },
+  ];
+
+  const notifications = [
+    { id: 1, title: 'Nouveau Message', description: 'Alex vous a envoyé un message concernant l\'iPhone 15.', time: 'Il y a 2m', read: false },
+    { id: 2, title: 'Annonce Approuvée', description: 'Votre annonce pour "Appareil Photo Vintage" est en ligne.', time: 'Il y a 1h', read: true },
+    { id: 3, title: 'Baisse de Prix', description: 'Un article dans vos favoris a un nouveau prix.', time: 'Il y a 5h', read: true },
+  ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-8"
-    >
-      {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-3xl bg-zinc-100 px-8 py-16 dark:bg-zinc-900">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(16,185,129,0.1),transparent)]" />
-        <div className="relative z-10 max-w-2xl">
-          <h1 className="text-5xl font-bold tracking-tight text-zinc-900 md:text-6xl dark:text-white">
-            Find what you need, <br />
-            <span className="text-emerald-500">share what you have.</span>
-          </h1>
-          <p className="mt-6 text-lg text-zinc-600 dark:text-zinc-400">
-            Lumina is the modern marketplace for your community. Buy, sell, and discuss in one place.
-          </p>
-        </div>
-      </section>
-
-      {/* Categories */}
-      <div className="flex flex-wrap gap-2">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setCategory(cat)}
-            className={`rounded-full px-6 py-2 text-sm font-medium transition-all ${
-              category === cat
-                ? 'bg-emerald-500 text-black'
-                : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300 hover:text-zinc-900 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Ads Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="h-80 animate-pulse rounded-2xl bg-zinc-200 dark:bg-zinc-900" />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {ads.map((ad, index) => (
-            <motion.div
-              key={ad.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Link
-                to={`/ad/${ad.id}`}
-                className="group block overflow-hidden rounded-2xl border border-zinc-200 bg-white transition-all hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/5 dark:border-white/5 dark:bg-zinc-900"
-              >
-                <div className="relative aspect-square overflow-hidden">
-                  <img
-                    src={ad.images[0] || `https://picsum.photos/seed/${ad.id}/400/400`}
-                    alt={ad.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute right-3 top-3">
-                    <button className="rounded-full bg-black/50 p-2 text-white backdrop-blur-md transition-colors hover:bg-emerald-500 hover:text-black">
-                      <Heart className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="absolute bottom-3 left-3">
-                    <span className="rounded-lg bg-emerald-500 px-3 py-1 text-sm font-bold text-black">
-                      ${ad.price}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-emerald-500">
-                    <Tag className="h-3 w-3" />
-                    {ad.category}
-                  </div>
-                  <h3 className="mt-1 line-clamp-1 font-semibold text-zinc-900 group-hover:text-emerald-500 dark:text-white dark:group-hover:text-emerald-400">
-                    {ad.title}
-                  </h3>
-                  <div className="mt-3 flex items-center justify-between text-xs text-zinc-500">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      {ad.location}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {formatDistanceToNow(new Date(ad.createdAt))} ago
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-      )}
-
-      {!loading && ads.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="rounded-full bg-zinc-100 p-6 dark:bg-zinc-900">
-            <Search className="h-12 w-12 text-zinc-400 dark:text-zinc-700" />
+    <nav className="sticky top-0 z-50 w-full border-b border-zinc-200 bg-white/80 backdrop-blur-md dark:border-white/10 dark:bg-black/80">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 font-bold text-black">
+            M
           </div>
-          <h3 className="mt-4 text-xl font-semibold text-zinc-900 dark:text-white">No ads found</h3>
-          <p className="mt-2 text-zinc-500">Try changing your filters or search query.</p>
+          <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">MaketGroup</span>
+        </Link>
+
+        <div className="hidden items-center gap-1 md:flex">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                location.pathname === item.path
+                  ? "bg-emerald-500/10 text-emerald-600 dark:bg-white/10 dark:text-white"
+                  : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
+              )}
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </Link>
+          ))}
         </div>
-      )}
-    </motion.div>
+
+        <div className="flex items-center gap-2 md:gap-4">
+          <div className="relative hidden lg:block">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+            <input
+              type="text"
+              placeholder="Rechercher des annonces..."
+              className="h-9 w-64 rounded-full border border-zinc-200 bg-zinc-100 pl-10 pr-4 text-sm text-zinc-900 placeholder:text-zinc-500 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 dark:border-white/10 dark:bg-white/5 dark:text-white"
+            />
+          </div>
+
+          <button
+            onClick={() => {
+              console.log('Bouton bascule cliqué, thème actuel:', theme);
+              toggleTheme();
+            }}
+            className="rounded-full p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5"
+            title={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+          >
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
+
+          {user ? (
+            <div className="flex items-center gap-2 md:gap-3">
+              <Link
+                to="/create-ad"
+                className="hidden items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black transition-transform hover:scale-105 active:scale-95 md:flex"
+              >
+                <PlusCircle className="h-4 w-4" />
+                Publier
+              </Link>
+              
+              <div className="relative">
+                <button 
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className={cn(
+                    "relative rounded-full p-2 transition-colors",
+                    showNotifications 
+                      ? "bg-emerald-500/10 text-emerald-600 dark:bg-white/10 dark:text-white" 
+                      : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5"
+                  )}
+                >
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-emerald-500" />
+                </button>
+
+                <AnimatePresence>
+                  {showNotifications && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setShowNotifications(false)} 
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute right-0 mt-2 w-80 origin-top-right rounded-2xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-zinc-900 z-50"
+                      >
+                        <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-100 dark:border-white/5">
+                          <span className="text-sm font-bold text-zinc-900 dark:text-white">Notifications</span>
+                          <button className="text-xs text-emerald-500 hover:underline">Tout marquer comme lu</button>
+                        </div>
+                        <div className="max-h-96 overflow-y-auto">
+                          {notifications.map((n) => (
+                            <div 
+                              key={n.id} 
+                              className={cn(
+                                "flex gap-3 rounded-xl p-3 transition-colors hover:bg-zinc-50 dark:hover:bg-white/5",
+                                !n.read && "bg-emerald-500/5"
+                              )}
+                            >
+                              <div className={cn(
+                                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                                n.read ? "bg-zinc-100 dark:bg-white/5" : "bg-emerald-500/20"
+                              )}>
+                                {n.read ? <Check className="h-4 w-4 text-zinc-400" /> : <Bell className="h-4 w-4 text-emerald-500" />}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-bold text-zinc-900 dark:text-white">{n.title}</span>
+                                  <span className="text-[10px] text-zinc-500">{n.time}</span>
+                                </div>
+                                <p className="mt-1 text-xs text-zinc-500 line-clamp-2">{n.description}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <button className="mt-2 w-full rounded-xl py-2 text-center text-xs font-medium text-zinc-500 hover:bg-zinc-50 dark:hover:bg-white/5">
+                          Voir toutes les notifications
+                        </button>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="group relative">
+                <button className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-white/20 dark:bg-zinc-800">
+                  {profile?.photoURL ? (
+                    <img src={profile.photoURL} alt={profile.displayName || ''} className="h-full w-full object-cover" />
+                  ) : (
+                    <User className="h-5 w-5 text-zinc-400" />
+                  )}
+                </button>
+                
+                <div className="invisible absolute right-0 mt-2 w-48 origin-top-right scale-95 rounded-xl border border-zinc-200 bg-white p-1 opacity-0 shadow-xl transition-all group-hover:visible group-hover:scale-100 group-hover:opacity-100 dark:border-white/10 dark:bg-zinc-900">
+                  <Link to="/profile" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white">
+                    <User className="h-4 w-4" />
+                    Profil
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-400/10"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Déconnexion
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={handleLogin}
+              className="flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            >
+              <LogIn className="h-4 w-4" />
+              Se connecter
+            </button>
+          )}
+        </div>
+      </div>
+    </nav>
   );
 };

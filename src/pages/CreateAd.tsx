@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { adService } from '../services/adService';
 import { storageService } from '../services/storageService';
 import { motion, AnimatePresence } from 'motion/react';
-import { Camera, MapPin, Tag, DollarSign, Loader2, X, Image as ImageIcon } from 'lucide-react';
+import { Camera, MapPin, Tag, Euro, Loader2, X, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export const CreateAd = () => {
@@ -18,11 +18,11 @@ export const CreateAd = () => {
     title: '',
     description: '',
     price: '',
-    category: 'Electronics',
+    category: 'Électronique',
     location: '',
   });
 
-  const categories = ['Electronics', 'Real Estate', 'Vehicles', 'Services', 'Jobs', 'Fashion'];
+  const categories = ['Électronique', 'Immobilier', 'Véhicules', 'Services', 'Emplois', 'Mode'];
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -74,26 +74,26 @@ export const CreateAd = () => {
       animate={{ opacity: 1, y: 0 }}
       className="mx-auto max-w-3xl"
     >
-      <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Create New Ad</h1>
-      <p className="mt-2 text-zinc-500 dark:text-zinc-400">Fill in the details below to publish your listing.</p>
+      <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Créer une nouvelle annonce</h1>
+      <p className="mt-2 text-zinc-500 dark:text-zinc-400">Remplissez les détails ci-dessous pour publier votre annonce.</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-8">
         <div className="space-y-6 rounded-3xl border border-zinc-200 bg-white p-8 dark:border-white/5 dark:bg-zinc-900">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Ad Title</label>
+            <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Titre de l'annonce</label>
             <input
               required
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="e.g. iPhone 15 Pro Max - Like New"
+              placeholder="ex: iPhone 15 Pro Max - Comme neuf"
               className="w-full rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none dark:border-white/10 dark:bg-black dark:text-white dark:placeholder:text-zinc-700"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Category</label>
+              <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Catégorie</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -103,9 +103,9 @@ export const CreateAd = () => {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Price ($)</label>
+              <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Prix (€)</label>
               <div className="relative">
-                <DollarSign className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                <Euro className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
                 <input
                   required
                   type="number"
@@ -119,7 +119,7 @@ export const CreateAd = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Location</label>
+            <label className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Localisation</label>
             <div className="relative">
               <MapPin className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
               <input
@@ -127,7 +127,7 @@ export const CreateAd = () => {
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="City, Country"
+                placeholder="Ville, Pays"
                 className="w-full rounded-xl border border-zinc-200 bg-zinc-50 p-4 pl-10 text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none dark:border-white/10 dark:bg-black dark:text-white dark:placeholder:text-zinc-700"
               />
             </div>
@@ -140,7 +140,7 @@ export const CreateAd = () => {
               rows={6}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Describe what you are selling..."
+              placeholder="Décrivez ce que vous vendez..."
               className="w-full rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none dark:border-white/10 dark:bg-black dark:text-white dark:placeholder:text-zinc-700"
             />
           </div>
@@ -176,7 +176,7 @@ export const CreateAd = () => {
                 className="flex aspect-square flex-col items-center justify-center rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50 transition-colors hover:border-emerald-500/50 dark:border-white/10 dark:bg-black"
               >
                 <Camera className="h-8 w-8 text-zinc-400" />
-                <span className="mt-2 text-xs font-medium text-zinc-500">Add Photo</span>
+                <span className="mt-2 text-xs font-medium text-zinc-500">Ajouter une photo</span>
               </button>
             </div>
             
@@ -191,7 +191,7 @@ export const CreateAd = () => {
             
             <div className="flex items-center gap-2 rounded-xl bg-emerald-500/5 p-4 text-xs text-emerald-600 dark:text-emerald-500">
               <ImageIcon className="h-4 w-4" />
-              <span>You can upload up to 10 photos. PNG, JPG up to 10MB each.</span>
+              <span>Vous pouvez uploader jusqu'à 10 photos. PNG, JPG jusqu'à 10Mo chacune.</span>
             </div>
           </div>
         </div>
@@ -202,7 +202,7 @@ export const CreateAd = () => {
             onClick={() => navigate(-1)}
             className="rounded-xl px-8 py-4 font-semibold text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
           >
-            Cancel
+            Annuler
           </button>
           <button
             disabled={loading}
@@ -210,7 +210,7 @@ export const CreateAd = () => {
             className="flex items-center gap-2 rounded-xl bg-emerald-500 px-12 py-4 font-bold text-black transition-transform hover:scale-105 active:scale-95 disabled:opacity-50"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Publish Ad
+            Publier l'annonce
           </button>
         </div>
       </form>

@@ -21,7 +21,7 @@ const mapChatToCamel = (chat: any): ChatSession => ({
 });
 
 export const chatService = {
-  async sendMessage(chatId: string, message: Omit<Message, 'id' | 'createdAt'>) {
+  async sendMessage(chatId: string, message: Omit<Message, 'id' | 'createdAt'>, options?: { title?: string }) {
     const newMessage = {
       chat_id: chatId,
       sender_id: message.senderId,
@@ -33,12 +33,18 @@ export const chatService = {
     };
 
     // Update chat session first (to ensure it exists for the FK/RLS in messages)
-    const { error: chatError } = await supabase.from('chats').upsert({
+    const upsertData: any = {
       id: chatId,
       last_message: newMessage,
       updated_at: new Date().toISOString(),
       participants: chatId.split('_')
-    }, { onConflict: 'id' });
+    };
+
+    if (options?.title) {
+      upsertData.title = options.title;
+    }
+
+    const { error: chatError } = await supabase.from('chats').upsert(upsertData, { onConflict: 'id' });
     
     if (chatError) await handleSupabaseError(chatError, OperationType.WRITE, `chats/${chatId}`);
 

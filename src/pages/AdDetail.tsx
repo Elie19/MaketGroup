@@ -17,6 +17,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export const AdDetail = () => {
   const { id } = useParams();
@@ -41,17 +42,17 @@ export const AdDetail = () => {
   };
 
   const handleDelete = async () => {
-    if (!ad || !window.confirm('Are you sure you want to delete this ad?')) return;
+    if (!ad || !window.confirm('Êtes-vous sûr de vouloir supprimer cette annonce ?')) return;
     try {
       await adService.deleteAd(ad.id);
       navigate('/');
     } catch (error) {
-      console.error('Error deleting ad:', error);
+      console.error('Erreur lors de la suppression de l\'annonce:', error);
     }
   };
 
   if (loading) return <div className="h-96 animate-pulse rounded-3xl bg-zinc-200 dark:bg-zinc-900" />;
-  if (!ad) return <div className="text-center text-zinc-900 dark:text-white">Ad not found</div>;
+  if (!ad) return <div className="text-center text-zinc-900 dark:text-white">Annonce non trouvée</div>;
 
   const isAuthor = user?.id === ad.authorId;
 
@@ -67,7 +68,7 @@ export const AdDetail = () => {
           className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
         >
           <ChevronLeft className="h-4 w-4" />
-          Back to listings
+          Retour aux annonces
         </button>
 
         <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white dark:border-white/5 dark:bg-zinc-900">
@@ -86,7 +87,7 @@ export const AdDetail = () => {
               </span>
               <div className="flex items-center gap-1 text-xs text-zinc-500">
                 <Clock className="h-3 w-3" />
-                {formatDistanceToNow(new Date(ad.createdAt))} ago
+                Il y a {formatDistanceToNow(new Date(ad.createdAt), { locale: fr })}
               </div>
             </div>
             <h1 className="mt-4 text-4xl font-bold text-zinc-900 dark:text-white">{ad.title}</h1>
@@ -112,50 +113,50 @@ export const AdDetail = () => {
 
       <div className="space-y-6">
         <div className="rounded-3xl border border-zinc-200 bg-white p-8 dark:border-white/5 dark:bg-zinc-900">
-          <div className="text-3xl font-bold text-emerald-500">${ad.price}</div>
+          <div className="text-3xl font-bold text-emerald-500">{ad.price}€</div>
           <div className="mt-6 space-y-3">
             <button
               onClick={handleContact}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-4 font-bold text-black transition-transform hover:scale-[1.02] active:scale-[0.98]"
             >
               <MessageCircle className="h-5 w-5" />
-              Contact Seller
+              Contacter le vendeur
             </button>
             <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 py-4 font-bold text-zinc-900 transition-colors hover:bg-zinc-50 dark:border-white/10 dark:text-white dark:hover:bg-white/5">
               <Heart className="h-5 w-5" />
-              Add to Favorites
+              Ajouter aux favoris
             </button>
             {isAuthor && (
               <button
                 onClick={handleDelete}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 py-4 font-bold text-red-500 transition-colors hover:bg-red-500/10"
               >
-                Delete Ad
+                Supprimer l'annonce
               </button>
             )}
           </div>
           <div className="mt-6 flex items-center justify-center gap-4">
             <button className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white">
               <Share2 className="h-4 w-4" />
-              Share
+              Partager
             </button>
           </div>
         </div>
 
         <div className="rounded-3xl border border-zinc-200 bg-white p-8 dark:border-white/5 dark:bg-zinc-900">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-500">Seller Information</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-500">Informations du vendeur</h3>
           <div className="mt-4 flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
               <User className="h-6 w-6 text-zinc-400" />
             </div>
             <div>
               <div className="font-semibold text-zinc-900 dark:text-white">{ad.authorName}</div>
-              <div className="text-xs text-zinc-500">Member since 2024</div>
+              <div className="text-xs text-zinc-500">Membre depuis 2024</div>
             </div>
           </div>
           <div className="mt-6 flex items-center gap-2 rounded-xl bg-emerald-500/5 p-4 text-xs text-emerald-500">
             <ShieldCheck className="h-4 w-4" />
-            Verified Seller
+            Vendeur Vérifié
           </div>
         </div>
       </div>

@@ -51,9 +51,9 @@ export const Messaging = () => {
 
   const getChatName = (chat: ChatSession) => {
     if (chat.title) return chat.title;
-    if (chat.isGroup) return 'Group Chat';
+    if (chat.isGroup) return 'Chat de Groupe';
     const otherId = chat.participants.find(p => p !== user?.id);
-    return otherId ? `User ${otherId.slice(0, 5)}` : 'Chat';
+    return otherId ? `Utilisateur ${otherId.slice(0, 5)}` : 'Chat';
   };
 
   const getActiveChatName = () => {
@@ -65,9 +65,9 @@ export const Messaging = () => {
 
     if (activeChatId?.includes('_')) {
       const otherId = activeChatId.split('_').find(p => p !== user?.id);
-      return otherId ? `User ${otherId.slice(0, 5)}` : 'Chat';
+      return otherId ? `Utilisateur ${otherId.slice(0, 5)}` : 'Chat';
     }
-    return 'Group Chat';
+    return 'Chat de Groupe';
   };
 
   return (
@@ -79,7 +79,7 @@ export const Messaging = () => {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
             <input
               type="text"
-              placeholder="Search messages..."
+              placeholder="Rechercher des messages..."
               className="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-2 pl-10 pr-4 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-white/10 dark:bg-black dark:text-white"
             />
           </div>
@@ -108,7 +108,7 @@ export const Messaging = () => {
                   </span>
                 </div>
                 <p className="mt-1 line-clamp-1 text-xs text-zinc-500">
-                  {chat.lastMessage?.text || 'No messages yet'}
+                  {chat.lastMessage?.text || 'Aucun message pour le moment'}
                 </p>
               </div>
             </button>
@@ -128,7 +128,7 @@ export const Messaging = () => {
                 </div>
                 <div>
                   <div className="font-semibold text-zinc-900 dark:text-white">{getActiveChatName()}</div>
-                  <div className="text-[10px] text-emerald-500">Online</div>
+                  <div className="text-[10px] text-emerald-500">En ligne</div>
                 </div>
               </div>
               <div className="flex items-center gap-4 text-zinc-400">
@@ -173,7 +173,7 @@ export const Messaging = () => {
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
+                  placeholder="Écrivez un message..."
                   className="flex-1 bg-transparent px-4 py-2 text-sm text-zinc-900 focus:outline-none dark:text-white"
                 />
                 <button
@@ -190,8 +190,8 @@ export const Messaging = () => {
             <div className="rounded-full bg-zinc-100 p-6 dark:bg-zinc-900">
               <MessageCircle className="h-12 w-12 text-zinc-300 dark:text-zinc-700" />
             </div>
-            <h3 className="mt-4 text-xl font-semibold text-zinc-900 dark:text-white">Your Messages</h3>
-            <p className="mt-2 text-zinc-500">Select a conversation to start chatting.</p>
+            <h3 className="mt-4 text-xl font-semibold text-zinc-900 dark:text-white">Vos Messages</h3>
+            <p className="mt-2 text-zinc-500">Sélectionnez une conversation pour commencer à discuter.</p>
           </div>
         )}
       </div>

@@ -79,12 +79,12 @@ export const Profile = () => {
           <User className="h-12 w-12 text-zinc-400" />
         </div>
         <h2 className="mt-6 text-2xl font-bold text-zinc-900 dark:text-white">
-          {!user ? 'Profile Not Found' : 'Profile Still Loading...'}
+          {!user ? 'Profil non trouvé' : 'Chargement du profil...'}
         </h2>
         <p className="mt-2 text-zinc-500 dark:text-zinc-400">
           {!user 
-            ? 'Please sign in to view your profile and manage your ads.' 
-            : 'We are setting up your profile. Please wait a moment or try refreshing.'}
+            ? 'Veuillez vous connecter pour voir votre profil et gérer vos annonces.' 
+            : 'Nous préparons votre profil. Veuillez patienter un instant ou essayer de rafraîchir la page.'}
         </p>
         {!user && (
           <Link
@@ -92,7 +92,7 @@ export const Profile = () => {
             className="mt-8 flex items-center gap-2 rounded-xl bg-emerald-500 px-8 py-3 font-bold text-black transition-transform hover:scale-105 active:scale-95"
           >
             <LogIn className="h-4 w-4" />
-            Sign In Now
+            Se connecter maintenant
           </Link>
         )}
       </motion.div>
@@ -129,19 +129,19 @@ export const Profile = () => {
                   value={editData.displayName}
                   onChange={(e) => setEditData({ ...editData, displayName: e.target.value })}
                   className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1 text-2xl font-bold dark:border-white/10 dark:bg-black dark:text-white"
-                  placeholder="Display Name"
+                  placeholder="Nom d'affichage"
                 />
                 <input
                   type="text"
                   value={editData.location}
                   onChange={(e) => setEditData({ ...editData, location: e.target.value })}
                   className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1 text-sm dark:border-white/10 dark:bg-black dark:text-white"
-                  placeholder="Location"
+                  placeholder="Localisation"
                 />
               </div>
             ) : (
               <>
-                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{profile.displayName || 'Anonymous User'}</h1>
+                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{profile.displayName || 'Utilisateur Anonyme'}</h1>
                 <div className="mt-2 flex flex-wrap justify-center gap-4 text-sm text-zinc-500 dark:text-zinc-400 md:justify-start">
                   <div className="flex items-center gap-1">
                     <Mail className="h-4 w-4" />
@@ -149,11 +149,11 @@ export const Profile = () => {
                   </div>
                   <div className="flex items-center gap-1">
                     <MapPin className="h-4 w-4" />
-                    {profile.location || 'Location not set'}
+                    {profile.location || 'Localisation non définie'}
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    Joined {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'Recently'}
+                    Membre depuis {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString('fr-FR') : 'Récemment'}
                   </div>
                 </div>
               </>
@@ -167,14 +167,14 @@ export const Profile = () => {
                   className="flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-black"
                 >
                   <Save className="h-4 w-4" />
-                  Save
+                  Enregistrer
                 </button>
                 <button
                   onClick={() => setIsEditing(false)}
                   className="flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-600 dark:border-white/10 dark:text-zinc-400"
                 >
                   <X className="h-4 w-4" />
-                  Cancel
+                  Annuler
                 </button>
               </div>
             ) : (
@@ -184,14 +184,14 @@ export const Profile = () => {
                   className="flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-bold text-zinc-600 dark:border-white/10 dark:text-zinc-400"
                 >
                   <Settings className="h-4 w-4" />
-                  Edit
+                  Modifier
                 </button>
                 <button
                   onClick={() => signOut()}
                   className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-2 text-sm font-bold text-red-500"
                 >
                   <LogOut className="h-4 w-4" />
-                  Sign Out
+                  Se déconnecter
                 </button>
               </div>
             )}
@@ -202,9 +202,9 @@ export const Profile = () => {
       {/* Stats */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {[
-          { label: 'Active Ads', value: ads.length.toString() },
-          { label: 'Total Sales', value: '0' },
-          { label: 'Rating', value: 'New' },
+          { label: 'Annonces Actives', value: ads.length.toString() },
+          { label: 'Ventes Totales', value: '0' },
+          { label: 'Note', value: 'Nouveau' },
         ].map((stat) => (
           <div key={stat.label} className="rounded-2xl border border-zinc-200 bg-white p-6 text-center dark:border-white/5 dark:bg-zinc-900">
             <div className="text-2xl font-bold text-zinc-900 dark:text-white">{stat.value}</div>
@@ -215,25 +215,25 @@ export const Profile = () => {
 
       {/* Bio */}
       <div className="rounded-3xl border border-zinc-200 bg-white p-8 dark:border-white/5 dark:bg-zinc-900">
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">About Me</h3>
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">À propos de moi</h3>
         {isEditing ? (
           <textarea
             value={editData.bio}
             onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
             className="mt-4 w-full rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-white/10 dark:bg-black dark:text-white"
             rows={4}
-            placeholder="Tell the community about yourself..."
+            placeholder="Parlez de vous à la communauté..."
           />
         ) : (
           <p className="mt-4 text-zinc-600 dark:text-zinc-400">
-            {profile.bio || "No bio yet. Tell the community about yourself!"}
+            {profile.bio || "Pas encore de bio. Parlez de vous à la communauté !"}
           </p>
         )}
       </div>
 
       {/* Your Ads */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Your Listings</h3>
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Vos Annonces</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ads.map((ad) => (
             <Link
@@ -247,7 +247,7 @@ export const Profile = () => {
               <div className="p-4">
                 <h4 className="font-semibold text-zinc-900 dark:text-white">{ad.title}</h4>
                 <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
-                  <span>${ad.price}</span>
+                  <span>{ad.price}€</span>
                   <span>{ad.status}</span>
                 </div>
               </div>
@@ -255,7 +255,7 @@ export const Profile = () => {
           ))}
           {ads.length === 0 && (
             <div className="col-span-full py-12 text-center text-zinc-500">
-              You haven't posted any ads yet.
+              Vous n'avez pas encore posté d'annonces.
             </div>
           )}
         </div>
