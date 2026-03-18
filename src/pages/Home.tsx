@@ -30,14 +30,14 @@ export const Home = () => {
       className="space-y-8"
     >
       {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-3xl bg-zinc-900 px-8 py-16">
+      <section className="relative overflow-hidden rounded-3xl bg-zinc-100 px-8 py-16 dark:bg-zinc-900">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(16,185,129,0.1),transparent)]" />
         <div className="relative z-10 max-w-2xl">
-          <h1 className="text-5xl font-bold tracking-tight text-white md:text-6xl">
+          <h1 className="text-5xl font-bold tracking-tight text-zinc-900 md:text-6xl dark:text-white">
             Find what you need, <br />
             <span className="text-emerald-500">share what you have.</span>
           </h1>
-          <p className="mt-6 text-lg text-zinc-400">
+          <p className="mt-6 text-lg text-zinc-600 dark:text-zinc-400">
             Lumina is the modern marketplace for your community. Buy, sell, and discuss in one place.
           </p>
         </div>
@@ -52,7 +52,7 @@ export const Home = () => {
             className={`rounded-full px-6 py-2 text-sm font-medium transition-all ${
               category === cat
                 ? 'bg-emerald-500 text-black'
-                : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300 hover:text-zinc-900 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white'
             }`}
           >
             {cat}
@@ -64,7 +64,7 @@ export const Home = () => {
       {loading ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="h-80 animate-pulse rounded-2xl bg-zinc-900" />
+            <div key={i} className="h-80 animate-pulse rounded-2xl bg-zinc-200 dark:bg-zinc-900" />
           ))}
         </div>
       ) : (
@@ -78,7 +78,7 @@ export const Home = () => {
             >
               <Link
                 to={`/ad/${ad.id}`}
-                className="group block overflow-hidden rounded-2xl border border-white/5 bg-zinc-900 transition-all hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/5"
+                className="group block overflow-hidden rounded-2xl border border-zinc-200 bg-white transition-all hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/5 dark:border-white/5 dark:bg-zinc-900"
               >
                 <div className="relative aspect-square overflow-hidden">
                   <img
@@ -103,7 +103,7 @@ export const Home = () => {
                     <Tag className="h-3 w-3" />
                     {ad.category}
                   </div>
-                  <h3 className="mt-1 line-clamp-1 font-semibold text-white group-hover:text-emerald-400">
+                  <h3 className="mt-1 line-clamp-1 font-semibold text-zinc-900 group-hover:text-emerald-500 dark:text-white dark:group-hover:text-emerald-400">
                     {ad.title}
                   </h3>
                   <div className="mt-3 flex items-center justify-between text-xs text-zinc-500">
@@ -125,10 +125,10 @@ export const Home = () => {
 
       {!loading && ads.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="rounded-full bg-zinc-900 p-6">
-            <Search className="h-12 w-12 text-zinc-700" />
+          <div className="rounded-full bg-zinc-100 p-6 dark:bg-zinc-900">
+            <Search className="h-12 w-12 text-zinc-400 dark:text-zinc-700" />
           </div>
-          <h3 className="mt-4 text-xl font-semibold text-white">No ads found</h3>
+          <h3 className="mt-4 text-xl font-semibold text-zinc-900 dark:text-white">No ads found</h3>
           <p className="mt-2 text-zinc-500">Try changing your filters or search query.</p>
         </div>
       )}

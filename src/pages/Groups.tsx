@@ -37,7 +37,12 @@ export const Groups = () => {
 
   const handleJoin = async (groupId: string) => {
     if (!user) return;
-    await groupService.joinGroup(groupId, user.id);
+    setLoading(true);
+    try {
+      await groupService.joinGroup(groupId, user.id);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,8 +53,8 @@ export const Groups = () => {
     >
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Community Groups</h1>
-          <p className="mt-2 text-zinc-400">Join discussions and meet people with similar interests.</p>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Community Groups</h1>
+          <p className="mt-2 text-zinc-500 dark:text-zinc-400">Join discussions and meet people with similar interests.</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
@@ -65,15 +70,15 @@ export const Groups = () => {
           <motion.div
             key={group.id}
             layoutId={group.id}
-            className="group overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 transition-all hover:border-emerald-500/30"
+            className="group overflow-hidden rounded-3xl border border-zinc-200 bg-white transition-all hover:border-emerald-500/30 dark:border-white/5 dark:bg-zinc-900"
           >
-            <div className="h-32 bg-gradient-to-br from-emerald-500/20 to-zinc-800" />
+            <div className="h-32 bg-gradient-to-br from-emerald-500/20 to-zinc-200 dark:to-zinc-800" />
             <div className="relative p-6">
-              <div className="absolute -top-8 left-6 flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-zinc-900 bg-zinc-800 shadow-xl">
+              <div className="absolute -top-8 left-6 flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-white bg-zinc-50 shadow-xl dark:border-zinc-900 dark:bg-zinc-800">
                 <Users className="h-8 w-8 text-emerald-500" />
               </div>
               <div className="mt-8">
-                <h3 className="text-xl font-bold text-white">{group.name}</h3>
+                <h3 className="text-xl font-bold text-zinc-900 dark:text-white">{group.name}</h3>
                 <p className="mt-2 line-clamp-2 text-sm text-zinc-500">
                   {group.description}
                 </p>
@@ -90,9 +95,10 @@ export const Groups = () => {
                   ) : (
                     <button
                       onClick={() => handleJoin(group.id)}
-                      className="rounded-lg bg-white px-4 py-2 text-xs font-bold text-black hover:bg-zinc-200"
+                      disabled={loading}
+                      className="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-bold text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
                     >
-                      Join Group
+                      {loading ? 'Joining...' : 'Join Group'}
                     </button>
                   )}
                 </div>
@@ -108,9 +114,9 @@ export const Groups = () => {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-full max-w-md rounded-3xl border border-white/10 bg-zinc-900 p-8 shadow-2xl"
+            className="w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-8 shadow-2xl dark:border-white/10 dark:bg-zinc-900"
           >
-            <h2 className="text-2xl font-bold text-white">Create Group</h2>
+            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Create Group</h2>
             <form onSubmit={handleCreateGroup} className="mt-6 space-y-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Group Name</label>
@@ -119,7 +125,7 @@ export const Groups = () => {
                   type="text"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-black p-4 text-white focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-white/10 dark:bg-black dark:text-white"
                 />
               </div>
               <div className="space-y-2">
@@ -128,14 +134,14 @@ export const Groups = () => {
                   rows={3}
                   value={newGroupDesc}
                   onChange={(e) => setNewGroupDesc(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-black p-4 text-white focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-white/10 dark:bg-black dark:text-white"
                 />
               </div>
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setShowCreate(false)}
-                  className="flex-1 rounded-xl border border-white/10 py-4 font-bold text-zinc-400 hover:text-white"
+                  className="flex-1 rounded-xl border border-zinc-200 py-4 font-bold text-zinc-500 hover:text-zinc-900 dark:border-white/10 dark:text-zinc-400 dark:hover:text-white"
                 >
                   Cancel
                 </button>

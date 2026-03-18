@@ -5,9 +5,11 @@
   --font-display: "Space Grotesk", sans-serif;
 }
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   body {
-    @apply bg-black text-zinc-100 antialiased;
+    @apply antialiased;
   }
 }
 

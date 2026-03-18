@@ -21,24 +21,27 @@ import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const Navbar = () => {
-  const { user, profile } = useAuthStore();
+  const { user, profile, signOut } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
 
   const handleLogin = async () => {
+    // Ensure we use the current origin for redirect
+    const redirectUrl = window.location.origin;
+    console.log('Initiating login with redirect to:', redirectUrl);
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin
+        redirectTo: redirectUrl
       }
     });
     if (error) console.error('Login error:', error.message);
   };
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) console.error('Logout error:', error.message);
+    await signOut();
   };
 
   const navItems = [
@@ -92,7 +95,10 @@ export const Navbar = () => {
           </div>
 
           <button
-            onClick={toggleTheme}
+            onClick={() => {
+              console.log('Toggle button clicked, current theme:', theme);
+              toggleTheme();
+            }}
             className="rounded-full p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5"
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >

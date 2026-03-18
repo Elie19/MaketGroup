@@ -37,31 +37,50 @@ export const Messaging = () => {
     e.preventDefault();
     if (!user || !activeChatId || !newMessage.trim()) return;
 
+    const chatTitle = searchParams.get('title');
+
     await chatService.sendMessage(activeChatId, {
       text: newMessage,
       senderId: user.id,
       senderName: profile?.displayName || 'Anonymous',
       senderPhoto: profile?.photoURL || undefined,
       chatId: activeChatId
-    });
+    }, chatTitle ? { title: chatTitle } : undefined);
     setNewMessage('');
   };
 
-  const getOtherParticipant = (participants: string[]) => {
-    return participants.find(p => p !== user?.id) || 'User';
+  const getChatName = (chat: ChatSession) => {
+    if (chat.title) return chat.title;
+    if (chat.isGroup) return 'Group Chat';
+    const otherId = chat.participants.find(p => p !== user?.id);
+    return otherId ? `User ${otherId.slice(0, 5)}` : 'Chat';
+  };
+
+  const getActiveChatName = () => {
+    const activeChat = chats.find(c => c.id === activeChatId);
+    if (activeChat) return getChatName(activeChat);
+    
+    const titleParam = searchParams.get('title');
+    if (titleParam) return titleParam;
+
+    if (activeChatId?.includes('_')) {
+      const otherId = activeChatId.split('_').find(p => p !== user?.id);
+      return otherId ? `User ${otherId.slice(0, 5)}` : 'Chat';
+    }
+    return 'Group Chat';
   };
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] overflow-hidden rounded-3xl border border-white/5 bg-zinc-900">
+    <div className="flex h-[calc(100vh-12rem)] overflow-hidden rounded-3xl border border-zinc-200 bg-white dark:border-white/5 dark:bg-zinc-900">
       {/* Sidebar */}
-      <div className="w-80 border-r border-white/5">
+      <div className="w-80 border-r border-zinc-200 dark:border-white/5">
         <div className="p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
             <input
               type="text"
               placeholder="Search messages..."
-              className="w-full rounded-xl border border-white/10 bg-black py-2 pl-10 pr-4 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-2 pl-10 pr-4 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-white/10 dark:bg-black dark:text-white"
             />
           </div>
         </div>
@@ -74,16 +93,16 @@ export const Messaging = () => {
                 setSearchParams({ chat: chat.id });
               }}
               className={cn(
-                "flex w-full items-center gap-3 p-4 transition-colors hover:bg-white/5",
-                activeChatId === chat.id && "bg-white/5"
+                "flex w-full items-center gap-3 p-4 transition-colors hover:bg-zinc-50 dark:hover:bg-white/5",
+                activeChatId === chat.id && "bg-zinc-50 dark:bg-white/5"
               )}
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
                 <User className="h-6 w-6 text-zinc-500" />
               </div>
               <div className="flex-1 text-left">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-white">User {getOtherParticipant(chat.participants).slice(0, 5)}</span>
+                  <span className="font-semibold text-zinc-900 dark:text-white">{getChatName(chat)}</span>
                   <span className="text-[10px] text-zinc-500">
                     {chat.updatedAt && format(new Date(chat.updatedAt), 'HH:mm')}
                   </span>
@@ -98,24 +117,24 @@ export const Messaging = () => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex flex-1 flex-col bg-black/20">
+      <div className="flex flex-1 flex-col bg-zinc-50/50 dark:bg-black/20">
         {activeChatId ? (
           <>
             {/* Chat Header */}
-            <div className="flex items-center justify-between border-b border-white/5 p-4">
+            <div className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-white/5">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
                   <User className="h-5 w-5 text-zinc-500" />
                 </div>
                 <div>
-                  <div className="font-semibold text-white">User {getOtherParticipant(activeChatId.split('_')).slice(0, 5)}</div>
+                  <div className="font-semibold text-zinc-900 dark:text-white">{getActiveChatName()}</div>
                   <div className="text-[10px] text-emerald-500">Online</div>
                 </div>
               </div>
               <div className="flex items-center gap-4 text-zinc-400">
-                <button className="hover:text-white"><Phone className="h-5 w-5" /></button>
-                <button className="hover:text-white"><Video className="h-5 w-5" /></button>
-                <button className="hover:text-white"><MoreVertical className="h-5 w-5" /></button>
+                <button className="hover:text-zinc-900 dark:hover:text-white"><Phone className="h-5 w-5" /></button>
+                <button className="hover:text-zinc-900 dark:hover:text-white"><Video className="h-5 w-5" /></button>
+                <button className="hover:text-zinc-900 dark:hover:text-white"><MoreVertical className="h-5 w-5" /></button>
               </div>
             </div>
 
@@ -134,12 +153,12 @@ export const Messaging = () => {
                       "max-w-[70%] rounded-2xl px-4 py-2 text-sm",
                       msg.senderId === user?.id
                         ? "bg-emerald-500 text-black rounded-tr-none"
-                        : "bg-zinc-800 text-white rounded-tl-none"
+                        : "bg-zinc-200 text-zinc-900 rounded-tl-none dark:bg-zinc-800 dark:text-white"
                     )}
                   >
                     {msg.text}
                   </div>
-                  <span className="mt-1 text-[10px] text-zinc-600">
+                  <span className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-600">
                     {format(new Date(msg.createdAt), 'HH:mm')}
                   </span>
                 </div>
@@ -149,13 +168,13 @@ export const Messaging = () => {
 
             {/* Input Area */}
             <form onSubmit={handleSendMessage} className="p-4">
-              <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-zinc-900 p-2">
+              <div className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white p-2 dark:border-white/10 dark:bg-zinc-900">
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
-                  className="flex-1 bg-transparent px-4 py-2 text-sm text-white focus:outline-none"
+                  className="flex-1 bg-transparent px-4 py-2 text-sm text-zinc-900 focus:outline-none dark:text-white"
                 />
                 <button
                   type="submit"
@@ -168,10 +187,10 @@ export const Messaging = () => {
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <div className="rounded-full bg-zinc-900 p-6">
-              <MessageCircle className="h-12 w-12 text-zinc-700" />
+            <div className="rounded-full bg-zinc-100 p-6 dark:bg-zinc-900">
+              <MessageCircle className="h-12 w-12 text-zinc-300 dark:text-zinc-700" />
             </div>
-            <h3 className="mt-4 text-xl font-semibold text-white">Your Messages</h3>
+            <h3 className="mt-4 text-xl font-semibold text-zinc-900 dark:text-white">Your Messages</h3>
             <p className="mt-2 text-zinc-500">Select a conversation to start chatting.</p>
           </div>
         )}

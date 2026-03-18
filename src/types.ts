@@ -53,4 +53,6 @@ export interface ChatSession {
   participants: string[];
   lastMessage?: Message;
   updatedAt: string;
+  title?: string;
+  isGroup?: boolean;
 }

@@ -37,11 +37,23 @@ export const AdDetail = () => {
   const handleContact = async () => {
     if (!user || !ad) return;
     const chatId = [user.id, ad.authorId].sort().join('_');
-    navigate(`/messages?chat=${chatId}`);
+    navigate(`/messages?chat=${chatId}&title=${encodeURIComponent(ad.title)}`);
   };
 
-  if (loading) return <div className="h-96 animate-pulse rounded-3xl bg-zinc-900" />;
-  if (!ad) return <div className="text-center">Ad not found</div>;
+  const handleDelete = async () => {
+    if (!ad || !window.confirm('Are you sure you want to delete this ad?')) return;
+    try {
+      await adService.deleteAd(ad.id);
+      navigate('/');
+    } catch (error) {
+      console.error('Error deleting ad:', error);
+    }
+  };
+
+  if (loading) return <div className="h-96 animate-pulse rounded-3xl bg-zinc-200 dark:bg-zinc-900" />;
+  if (!ad) return <div className="text-center text-zinc-900 dark:text-white">Ad not found</div>;
+
+  const isAuthor = user?.id === ad.authorId;
 
   return (
     <motion.div
@@ -52,13 +64,13 @@ export const AdDetail = () => {
       <div className="lg:col-span-2 space-y-6">
         <button 
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white"
+          className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
         >
           <ChevronLeft className="h-4 w-4" />
           Back to listings
         </button>
 
-        <div className="overflow-hidden rounded-3xl border border-white/5 bg-zinc-900">
+        <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white dark:border-white/5 dark:bg-zinc-900">
           <div className="aspect-video w-full">
             <img
               src={ad.images[0] || `https://picsum.photos/seed/${ad.id}/800/600`}
@@ -77,8 +89,8 @@ export const AdDetail = () => {
                 {formatDistanceToNow(new Date(ad.createdAt))} ago
               </div>
             </div>
-            <h1 className="mt-4 text-4xl font-bold text-white">{ad.title}</h1>
-            <div className="mt-6 flex items-center gap-6 text-zinc-400">
+            <h1 className="mt-4 text-4xl font-bold text-zinc-900 dark:text-white">{ad.title}</h1>
+            <div className="mt-6 flex items-center gap-6 text-zinc-600 dark:text-zinc-400">
               <div className="flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-emerald-500" />
                 {ad.location}
@@ -88,9 +100,9 @@ export const AdDetail = () => {
                 {ad.status}
               </div>
             </div>
-            <div className="mt-8 border-t border-white/5 pt-8">
-              <h3 className="text-lg font-semibold text-white">Description</h3>
-              <p className="mt-4 whitespace-pre-wrap leading-relaxed text-zinc-400">
+            <div className="mt-8 border-t border-zinc-200 pt-8 dark:border-white/5">
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Description</h3>
+              <p className="mt-4 whitespace-pre-wrap leading-relaxed text-zinc-600 dark:text-zinc-400">
                 {ad.description}
               </p>
             </div>
@@ -99,7 +111,7 @@ export const AdDetail = () => {
       </div>
 
       <div className="space-y-6">
-        <div className="rounded-3xl border border-white/5 bg-zinc-900 p-8">
+        <div className="rounded-3xl border border-zinc-200 bg-white p-8 dark:border-white/5 dark:bg-zinc-900">
           <div className="text-3xl font-bold text-emerald-500">${ad.price}</div>
           <div className="mt-6 space-y-3">
             <button
@@ -109,27 +121,35 @@ export const AdDetail = () => {
               <MessageCircle className="h-5 w-5" />
               Contact Seller
             </button>
-            <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 py-4 font-bold text-white transition-colors hover:bg-white/5">
+            <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 py-4 font-bold text-zinc-900 transition-colors hover:bg-zinc-50 dark:border-white/10 dark:text-white dark:hover:bg-white/5">
               <Heart className="h-5 w-5" />
               Add to Favorites
             </button>
+            {isAuthor && (
+              <button
+                onClick={handleDelete}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 py-4 font-bold text-red-500 transition-colors hover:bg-red-500/10"
+              >
+                Delete Ad
+              </button>
+            )}
           </div>
           <div className="mt-6 flex items-center justify-center gap-4">
-            <button className="flex items-center gap-2 text-sm text-zinc-500 hover:text-white">
+            <button className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white">
               <Share2 className="h-4 w-4" />
               Share
             </button>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/5 bg-zinc-900 p-8">
+        <div className="rounded-3xl border border-zinc-200 bg-white p-8 dark:border-white/5 dark:bg-zinc-900">
           <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-500">Seller Information</h3>
           <div className="mt-4 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
               <User className="h-6 w-6 text-zinc-400" />
             </div>
             <div>
-              <div className="font-semibold text-white">{ad.authorName}</div>
+              <div className="font-semibold text-zinc-900 dark:text-white">{ad.authorName}</div>
               <div className="text-xs text-zinc-500">Member since 2024</div>
             </div>
           </div>

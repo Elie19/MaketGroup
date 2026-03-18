@@ -21,11 +21,13 @@ export default function App() {
   }, [init]);
 
   useEffect(() => {
+    console.log('Applying theme:', theme);
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
+    console.log('Document class list:', document.documentElement.classList.toString());
   }, [theme]);
 
   if (!initialized && loading) {
