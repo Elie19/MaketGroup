@@ -4,7 +4,7 @@ import supabaseConfig from '../supabase-config.json';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || supabaseConfig.supabaseUrl;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || supabaseConfig.supabaseAnonKey;
 const PLACEHOLDER_URL = 'https://lnnumdpnxmcszcuzadcv.supabase.co';
-const PLACEHOLDER_KEY = '002001';
+const PLACEHOLDER_KEY = 'sb_publishable__mooyPTqAmzKMvP4S1F9iA_rGHcaons';
 
 const isValidHttpUrl = (value: string) => {
   try {
