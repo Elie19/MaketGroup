@@ -107,7 +107,10 @@ export const Home = () => {
                   <h3 className="mt-1 line-clamp-1 font-semibold text-zinc-900 group-hover:text-emerald-500 dark:text-white dark:group-hover:text-emerald-400">
                     {ad.title}
                   </h3>
-                  <div className="mt-3 flex items-center justify-between text-xs text-zinc-500">
+                  <div className="mt-1 text-[10px] text-zinc-400">
+                    Par {ad.authorName}
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
                     <div className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
                       {ad.location}

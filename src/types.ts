@@ -9,6 +9,8 @@ export interface UserProfile {
   location?: string;
   role: UserRole;
   createdAt: string;
+  averageRating?: number;
+  totalReviews?: number;
 }
 
 export interface AdListing {
@@ -24,6 +26,32 @@ export interface AdListing {
   createdAt: string;
   status: 'active' | 'sold' | 'deleted';
   favoritesCount: number;
+}
+
+export interface Transaction {
+  id: string;
+  adId: string;
+  sellerId: string;
+  buyerId?: string;
+  guestEmail?: string;
+  guestName?: string;
+  amount: number;
+  status: 'completed' | 'cancelled';
+  paymentMethod?: 'mtn' | 'moov' | 'cash' | 'card';
+  paymentReference?: string;
+  createdAt: string;
+  adTitle?: string;
+}
+
+export interface Review {
+  id: string;
+  transactionId: string;
+  sellerId: string;
+  reviewerId?: string;
+  reviewerName?: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
 }
 
 export interface Message {

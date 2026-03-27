@@ -72,6 +72,12 @@ export const adService = {
     return data ? mapAdToCamel(data) : null;
   },
 
+  async getAds() {
+    const { data, error } = await supabase.from(ADS_TABLE).select('*').order('created_at', { ascending: false });
+    if (error) await handleSupabaseError(error, OperationType.GET, ADS_TABLE);
+    return data ? data.map(mapAdToCamel) : [];
+  },
+
   subscribeToAds(callback: (ads: AdListing[]) => void, filters?: { category?: string; minPrice?: number; maxPrice?: number }) {
     // Initial fetch
     let query = supabase.from(ADS_TABLE).select('*').eq('status', 'active').order('created_at', { ascending: false });

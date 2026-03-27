@@ -57,6 +57,7 @@ export default function App() {
               <Route path="/messages" element={<Messaging />} />
               <Route path="/groups" element={<Groups />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:userId" element={<Profile />} />
               <Route path="/ad/:id" element={<AdDetail />} />
               <Route path="/create-ad" element={<CreateAd />} />
             </Routes>
@@ -68,10 +69,10 @@ export default function App() {
           <div className="mx-auto max-w-7xl px-4 text-center">
             <div className="flex items-center justify-center gap-2 opacity-50">
               <div className="h-6 w-6 rounded bg-emerald-500" />
-              <span className="font-bold">Lumina</span>
+              <span className="font-bold">MaketGroup</span>
             </div>
             <p className="mt-4 text-sm text-zinc-500">
-              © 2026 Lumina Platform. All rights reserved.
+              © 2026 MaketGroup Platform. Tous droits réservés.
             </p>
           </div>
         </footer>
