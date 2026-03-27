@@ -95,30 +95,41 @@ export const adService = {
       const { data, error } = await query;
       if (error) {
         await handleSupabaseError(error, OperationType.GET, ADS_TABLE);
-        return [];
       }
       return data ? data.map(mapAdToCamel) : [];
     } catch (error) {
-      if (!(error instanceof Error && error.message.includes('Supabase Error'))) {
-        await handleSupabaseError(error, OperationType.GET, ADS_TABLE);
+      if (error instanceof Error && error.message.includes('Supabase Error')) {
+        throw error;
       }
-      return [];
+      await handleSupabaseError(error, OperationType.GET, ADS_TABLE);
+      throw error; // Should be unreachable as handleSupabaseError throws
     }
   },
 
-  subscribeToAds(callback: (ads: AdListing[]) => void, filters?: { category?: string; search?: string }) {
+  subscribeToAds(callback: (ads: AdListing[]) => void, filters?: { category?: string; search?: string }, onError?: (error: string) => void) {
     // Initial fetch
-    this.getAds(filters).then(callback).catch(err => console.error('Error in initial fetch:', err));
+    this.getAds(filters)
+      .then(callback)
+      .catch(err => {
+        console.error('Error in initial fetch:', err);
+        if (onError) onError(err.message || String(err));
+      });
 
     // Subscribe to changes
     const channel = supabase
       .channel('ads-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: ADS_TABLE }, async (payload) => {
-        this.getAds(filters).then(callback).catch(err => console.error('Error in subscription update:', err));
+        this.getAds(filters)
+          .then(callback)
+          .catch(err => {
+            console.error('Error in subscription update:', err);
+            if (onError) onError(err.message || String(err));
+          });
       })
       .subscribe((status) => {
         if (status === 'CHANNEL_ERROR') {
           console.error('Supabase Realtime channel error');
+          if (onError) onError('Erreur de connexion en temps réel. Vérifiez votre configuration Supabase.');
         }
       });
 

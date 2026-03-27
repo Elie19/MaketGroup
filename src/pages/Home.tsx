@@ -3,16 +3,18 @@ import { adService } from '../services/adService';
 import { AdListing } from '../types';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { MapPin, Tag, Clock, Heart, Search } from 'lucide-react';
+import { MapPin, Tag, Clock, Heart, Search, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useAuthStore } from '../store/useAuthStore';
 import { cn } from '../lib/utils';
+import { supabase, isConfigured } from '../supabase';
 
 export const Home = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [ads, setAds] = useState<AdListing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState<string>(searchParams.get('category') || 'Tous');
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -29,10 +31,14 @@ export const Home = () => {
   }, [searchParams]);
 
   useEffect(() => {
+    setError(null);
     const unsubscribe = adService.subscribeToAds((newAds) => {
       setAds(newAds);
       setLoading(false);
-    }, { category, search });
+    }, { category, search }, (err) => {
+      setError(err);
+      setLoading(false);
+    });
 
     return () => unsubscribe();
   }, [category, search]);
@@ -133,7 +139,31 @@ export const Home = () => {
       </div>
 
       {/* Ads Grid */}
-      {loading ? (
+      {!isConfigured ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="rounded-full bg-zinc-100 p-6 dark:bg-zinc-900">
+            <AlertCircle className="h-12 w-12 text-zinc-400 dark:text-zinc-700" />
+          </div>
+          <h3 className="mt-4 text-xl font-semibold text-zinc-900 dark:text-white">Configuration requise</h3>
+          <p className="mt-2 text-zinc-500 max-w-md mx-auto">
+            Veuillez configurer vos clés Supabase dans le menu des paramètres pour commencer à utiliser la plateforme.
+          </p>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="rounded-full bg-red-100 p-6 dark:bg-red-900/20">
+            <AlertCircle className="h-12 w-12 text-red-500" />
+          </div>
+          <h3 className="mt-4 text-xl font-semibold text-zinc-900 dark:text-white">Erreur de connexion</h3>
+          <p className="mt-2 text-zinc-500 max-w-md mx-auto">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-6 rounded-xl bg-emerald-500 px-6 py-2 text-sm font-bold text-black hover:bg-emerald-400"
+          >
+            Réessayer
+          </button>
+        </div>
+      ) : loading ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="h-80 animate-pulse rounded-2xl bg-zinc-200 dark:bg-zinc-900" />
