@@ -59,9 +59,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
 
     async function fetchProfile(userId: string) {
-      console.log('Fetching profile for:', userId);
       try {
-        // Try 'users' table first
         const { data: profile, error } = await supabase
           .from('users')
           .select('*')
@@ -69,89 +67,16 @@ export const useAuthStore = create<AuthState>((set) => ({
           .single();
 
         if (profile) {
-          console.log('Profile found in users table (uid):', profile);
           set({ profile: mapProfileToCamel(profile), loading: false, initialized: true });
           return;
         }
 
-        // Try 'users' table with 'id' column
-        const { data: profileId, error: errorId } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', userId)
-          .single();
-
-        if (profileId) {
-          console.log('Profile found in users table (id):', profileId);
-          set({ profile: mapProfileToCamel(profileId), loading: false, initialized: true });
-          return;
-        }
-
-        console.log('Profile not found in users table (uid or id), checking error:', error || errorId);
-
-        // If error is not "no rows found", it might be a table name issue or RLS
         if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching from users table:', error);
+          console.error('Error fetching profile:', error);
         }
 
-        // Fallback: Try 'profiles' table with 'id' column (common Supabase pattern)
-        const { data: profileFallback, error: errorFallback } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-
-        if (profileFallback) {
-          console.log('Profile found in profiles table:', profileFallback);
-          set({ profile: mapProfileToCamel(profileFallback), loading: false, initialized: true });
-          return;
-        }
-
-        console.log('Profile not found in profiles table either:', errorFallback);
-
-        // If still not found, try to create it in 'users' table
-        console.log('Attempting to create new profile in users table...');
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { error: insertError } = await supabase.from('users').insert({
-            uid: user.id,
-            display_name: user.user_metadata.full_name || user.email?.split('@')[0] || 'Anonymous',
-            email: user.email || null,
-            photo_url: user.user_metadata.avatar_url || null,
-            role: 'user',
-            created_at: new Date().toISOString(),
-          });
-          
-          if (insertError) {
-            console.error('Error creating profile in users table:', insertError);
-            // Try creating in 'profiles' table as fallback
-            console.log('Attempting to create new profile in profiles table...');
-            const { error: insertErrorFallback } = await supabase.from('profiles').insert({
-              id: user.id,
-              display_name: user.user_metadata.full_name || user.email?.split('@')[0] || 'Anonymous',
-              email: user.email || null,
-              avatar_url: user.user_metadata.avatar_url || null,
-              role: 'user',
-              created_at: new Date().toISOString()
-            });
-            
-            if (insertErrorFallback) {
-              console.error('Error creating profile in profiles table:', insertErrorFallback);
-            } else {
-              console.log('Profile created successfully in profiles table');
-              const { data: createdProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-              if (createdProfile) set({ profile: mapProfileToCamel(createdProfile), loading: false, initialized: true });
-              return;
-            }
-          } else {
-            console.log('Profile created successfully in users table');
-            const { data: createdProfile } = await supabase.from('users').select('*').eq('uid', user.id).single();
-            if (createdProfile) set({ profile: mapProfileToCamel(createdProfile), loading: false, initialized: true });
-            return;
-          }
-        }
-        
-        // If all else fails
+        // Profile might not be created yet by the trigger if it's a very fast login
+        // We could retry once or just wait for the next state change
         set({ loading: false, initialized: true });
       } catch (err) {
         console.error('Unexpected error in fetchProfile:', err);

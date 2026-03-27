@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { chatService } from '../services/chatService';
 import { Message, ChatSession } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, User, Search, MoreVertical, Phone, Video, MessageCircle } from 'lucide-react';
+import { Send, User, Search, MoreVertical, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 
@@ -15,7 +15,10 @@ export const Messaging = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(searchParams.get('chat'));
   const [newMessage, setNewMessage] = useState('');
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -25,13 +28,29 @@ export const Messaging = () => {
 
   useEffect(() => {
     if (!activeChatId) return;
-    const unsubscribe = chatService.subscribeToMessages(activeChatId, setMessages);
+    setHasMore(true);
+    const unsubscribe = chatService.subscribeToMessages(activeChatId, (msgs) => {
+      setMessages(msgs);
+      if (msgs.length < 50) setHasMore(false);
+    });
     return () => unsubscribe();
   }, [activeChatId]);
 
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages.length]);
+
+  const handleLoadMore = async () => {
+    if (!activeChatId || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const olderMessages = await chatService.getMessages(activeChatId, 50, messages.length);
+      if (olderMessages.length < 50) setHasMore(false);
+      setMessages(prev => [...olderMessages, ...prev]);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,14 +151,23 @@ export const Messaging = () => {
                 </div>
               </div>
               <div className="flex items-center gap-4 text-zinc-400">
-                <button className="hover:text-zinc-900 dark:hover:text-white"><Phone className="h-5 w-5" /></button>
-                <button className="hover:text-zinc-900 dark:hover:text-white"><Video className="h-5 w-5" /></button>
                 <button className="hover:text-zinc-900 dark:hover:text-white"><MoreVertical className="h-5 w-5" /></button>
               </div>
             </div>
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {hasMore && (
+                <div className="flex justify-center pb-4">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                    className="text-xs font-medium text-emerald-500 hover:text-emerald-400 disabled:opacity-50"
+                  >
+                    {loadingMore ? 'Chargement...' : 'Charger les messages plus anciens'}
+                  </button>
+                </div>
+              )}
               {messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -163,7 +191,7 @@ export const Messaging = () => {
                   </span>
                 </div>
               ))}
-              <div ref={scrollRef} />
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input Area */}

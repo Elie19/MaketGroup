@@ -72,37 +72,78 @@ export const adService = {
     return data ? mapAdToCamel(data) : null;
   },
 
-  async getAds() {
-    const { data, error } = await supabase.from(ADS_TABLE).select('*').order('created_at', { ascending: false });
-    if (error) await handleSupabaseError(error, OperationType.GET, ADS_TABLE);
-    return data ? data.map(mapAdToCamel) : [];
+  async getAds(filters?: { category?: string; search?: string; minPrice?: number; maxPrice?: number; location?: string }) {
+    try {
+      let query = supabase.from(ADS_TABLE).select('*').eq('status', 'active').order('created_at', { ascending: false });
+      
+      if (filters?.category && filters.category !== 'Tous') {
+        query = query.eq('category', filters.category);
+      }
+      if (filters?.search) {
+        query = query.ilike('title', `%${filters.search}%`);
+      }
+      if (filters?.minPrice !== undefined) {
+        query = query.gte('price', filters.minPrice);
+      }
+      if (filters?.maxPrice !== undefined) {
+        query = query.lte('price', filters.maxPrice);
+      }
+      if (filters?.location) {
+        query = query.ilike('location', `%${filters.location}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        await handleSupabaseError(error, OperationType.GET, ADS_TABLE);
+        return [];
+      }
+      return data ? data.map(mapAdToCamel) : [];
+    } catch (error) {
+      if (!(error instanceof Error && error.message.includes('Supabase Error'))) {
+        await handleSupabaseError(error, OperationType.GET, ADS_TABLE);
+      }
+      return [];
+    }
   },
 
-  subscribeToAds(callback: (ads: AdListing[]) => void, filters?: { category?: string; minPrice?: number; maxPrice?: number }) {
+  subscribeToAds(callback: (ads: AdListing[]) => void, filters?: { category?: string; search?: string }) {
     // Initial fetch
-    let query = supabase.from(ADS_TABLE).select('*').eq('status', 'active').order('created_at', { ascending: false });
-    if (filters?.category) {
-      query = query.eq('category', filters.category);
-    }
-    query.then(({ data }) => {
-      if (data) callback(data.map(mapAdToCamel));
-    });
+    this.getAds(filters).then(callback).catch(err => console.error('Error in initial fetch:', err));
 
     // Subscribe to changes
     const channel = supabase
       .channel('ads-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: ADS_TABLE }, async () => {
-        let q = supabase.from(ADS_TABLE).select('*').eq('status', 'active').order('created_at', { ascending: false });
-        if (filters?.category) {
-          q = q.eq('category', filters.category);
-        }
-        const { data } = await q;
-        if (data) callback(data.map(mapAdToCamel));
+      .on('postgres_changes', { event: '*', schema: 'public', table: ADS_TABLE }, async (payload) => {
+        this.getAds(filters).then(callback).catch(err => console.error('Error in subscription update:', err));
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error('Supabase Realtime channel error');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
+  },
+
+  async toggleFavorite(userId: string, adId: string, isFavorite: boolean) {
+    if (isFavorite) {
+      const { error } = await supabase.from('favorites').delete().match({ user_id: userId, ad_id: adId });
+      if (error) await handleSupabaseError(error, OperationType.DELETE, 'favorites');
+    } else {
+      const { error } = await supabase.from('favorites').insert({ user_id: userId, ad_id: adId });
+      if (error) await handleSupabaseError(error, OperationType.WRITE, 'favorites');
+    }
+  },
+
+  async getUserFavorites(userId: string) {
+    const { data, error } = await supabase
+      .from('favorites')
+      .select('*, ads(*)')
+      .eq('user_id', userId);
+    
+    if (error) await handleSupabaseError(error, OperationType.GET, 'favorites');
+    return data ? data.map((f: any) => mapAdToCamel(f.ads)) : [];
   }
 };

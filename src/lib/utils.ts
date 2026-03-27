@@ -27,8 +27,20 @@ export interface SupabaseErrorInfo {
 
 export async function handleSupabaseError(error: unknown, operationType: OperationType, path: string | null) {
   const { data: { user } } = await supabase.auth.getUser();
+  
+  let errorMessage = 'Unknown error';
+  if (error instanceof Error) {
+    errorMessage = error.message;
+  } else if (typeof error === 'object' && error !== null) {
+    // PostgrestError has message, details, hint, code
+    const e = error as any;
+    errorMessage = e.message || e.details || e.hint || e.code || JSON.stringify(error, Object.getOwnPropertyNames(error));
+  } else {
+    errorMessage = String(error);
+  }
+
   const errInfo: SupabaseErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMessage,
     authInfo: {
       userId: user?.id,
       email: user?.email,

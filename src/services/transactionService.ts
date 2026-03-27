@@ -4,26 +4,18 @@ import { handleSupabaseError, OperationType } from '../lib/utils';
 
 export const transactionService = {
   async createTransaction(transaction: Omit<Transaction, 'id' | 'createdAt'>) {
-    const { data, error } = await supabase
-      .from('transactions')
-      .insert({
-        ad_id: transaction.adId,
-        seller_id: transaction.sellerId,
-        buyer_id: transaction.buyerId || null,
-        guest_email: transaction.guestEmail || null,
-        guest_name: transaction.guestName || null,
-        amount: transaction.amount,
-        status: transaction.status || 'completed',
-        payment_method: transaction.paymentMethod || null,
-        payment_reference: transaction.paymentReference || null
-      })
-      .select()
-      .single();
+    const { data, error } = await supabase.rpc('process_purchase', {
+      p_ad_id: transaction.adId,
+      p_seller_id: transaction.sellerId,
+      p_buyer_id: transaction.buyerId || null,
+      p_amount: transaction.amount,
+      p_payment_method: transaction.paymentMethod || null,
+      p_payment_reference: transaction.paymentReference || null,
+      p_guest_email: transaction.guestEmail || null,
+      p_guest_name: transaction.guestName || null
+    });
 
     if (error) await handleSupabaseError(error, OperationType.WRITE, 'transactions');
-    
-    // Mark ad as sold
-    await supabase.from('ads').update({ status: 'sold' }).eq('id', transaction.adId);
     
     return data;
   },

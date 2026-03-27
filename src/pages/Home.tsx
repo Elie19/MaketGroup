@@ -1,27 +1,87 @@
 import React, { useState, useEffect } from 'react';
 import { adService } from '../services/adService';
 import { AdListing } from '../types';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { MapPin, Tag, Clock, Heart, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useAuthStore } from '../store/useAuthStore';
+import { cn } from '../lib/utils';
 
 export const Home = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [ads, setAds] = useState<AdListing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState<string>('Tous');
+  const [category, setCategory] = useState<string>(searchParams.get('category') || 'Tous');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const { profile } = useAuthStore();
 
   const categories = ['Tous', 'Électronique', 'Immobilier', 'Véhicules', 'Services', 'Emplois', 'Mode'];
+
+  // Sync search state with URL params
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    const urlCategory = searchParams.get('category') || 'Tous';
+    setSearch(urlSearch);
+    setCategory(urlCategory);
+  }, [searchParams]);
 
   useEffect(() => {
     const unsubscribe = adService.subscribeToAds((newAds) => {
       setAds(newAds);
       setLoading(false);
-    }, category !== 'Tous' ? { category } : undefined);
+    }, { category, search });
 
     return () => unsubscribe();
-  }, [category]);
+  }, [category, search]);
+
+  useEffect(() => {
+    if (profile) {
+      adService.getUserFavorites(profile.uid).then(favs => {
+        setFavorites(new Set(favs.map(f => f.id)));
+      });
+    }
+  }, [profile]);
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    const newParams = new URLSearchParams(searchParams);
+    if (val) newParams.set('search', val);
+    else newParams.delete('search');
+    setSearchParams(newParams);
+  };
+
+  const handleCategoryChange = (cat: string) => {
+    setCategory(cat);
+    const newParams = new URLSearchParams(searchParams);
+    if (cat !== 'Tous') newParams.set('category', cat);
+    else newParams.delete('category');
+    setSearchParams(newParams);
+  };
+
+  useEffect(() => {
+    if (profile) {
+      adService.getUserFavorites(profile.uid).then(favs => {
+        setFavorites(new Set(favs.map(f => f.id)));
+      });
+    }
+  }, [profile]);
+
+  const handleToggleFavorite = async (e: React.MouseEvent, adId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!profile) return;
+
+    const isFavorite = favorites.has(adId);
+    const newFavorites = new Set(favorites);
+    if (isFavorite) newFavorites.delete(adId);
+    else newFavorites.add(adId);
+    setFavorites(newFavorites);
+
+    await adService.toggleFavorite(profile.uid, adId, isFavorite);
+  };
 
   return (
     <motion.div
@@ -41,6 +101,17 @@ export const Home = () => {
           <p className="mt-6 text-lg text-zinc-600 dark:text-zinc-400">
             MaketGroup est la place de marché moderne pour votre communauté. Achetez, vendez et discutez en un seul endroit.
           </p>
+          
+          <div className="mt-10 relative max-w-md">
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="text"
+              placeholder="Rechercher un article..."
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full rounded-2xl border-none bg-white py-4 pl-12 pr-4 text-zinc-900 shadow-xl shadow-emerald-500/5 focus:ring-2 focus:ring-emerald-500 dark:bg-zinc-800 dark:text-white"
+            />
+          </div>
         </div>
       </section>
 
@@ -49,7 +120,7 @@ export const Home = () => {
         {categories.map((cat) => (
           <button
             key={cat}
-            onClick={() => setCategory(cat)}
+            onClick={() => handleCategoryChange(cat)}
             className={`rounded-full px-6 py-2 text-sm font-medium transition-all ${
               category === cat
                 ? 'bg-emerald-500 text-black'
@@ -89,8 +160,16 @@ export const Home = () => {
                     referrerPolicy="no-referrer"
                   />
                   <div className="absolute right-3 top-3">
-                    <button className="rounded-full bg-black/50 p-2 text-white backdrop-blur-md transition-colors hover:bg-emerald-500 hover:text-black">
-                      <Heart className="h-4 w-4" />
+                    <button 
+                      onClick={(e) => handleToggleFavorite(e, ad.id)}
+                      className={cn(
+                        "rounded-full p-2 backdrop-blur-md transition-all",
+                        favorites.has(ad.id) 
+                          ? "bg-emerald-500 text-black scale-110" 
+                          : "bg-black/50 text-white hover:bg-emerald-500 hover:text-black"
+                      )}
+                    >
+                      <Heart className={cn("h-4 w-4", favorites.has(ad.id) && "fill-current")} />
                     </button>
                   </div>
                   <div className="absolute bottom-3 left-3">

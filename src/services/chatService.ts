@@ -52,40 +52,74 @@ export const chatService = {
     if (error) await handleSupabaseError(error, OperationType.WRITE, 'messages');
   },
 
+  async getMessages(chatId: string, limit = 50, offset = 0) {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('chat_id', chatId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) await handleSupabaseError(error, OperationType.GET, `messages/${chatId}`);
+    return data ? data.map(mapMessageToCamel).reverse() : [];
+  },
+
   subscribeToMessages(chatId: string, callback: (messages: Message[]) => void) {
     // Initial fetch
-    supabase.from('messages').select('*').eq('chat_id', chatId).order('created_at', { ascending: true }).then(({ data }) => {
-      if (data) callback(data.map(mapMessageToCamel));
-    });
+    this.getMessages(chatId).then(callback).catch(err => console.error('Error in initial message fetch:', err));
 
     // Subscribe to changes
     const channel = supabase
       .channel(`messages-${chatId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, async () => {
-        const { data } = await supabase.from('messages').select('*').eq('chat_id', chatId).order('created_at', { ascending: true });
-        if (data) callback(data.map(mapMessageToCamel));
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'messages', 
+        filter: `chat_id=eq.${chatId}` 
+      }, (payload) => {
+        this.getMessages(chatId).then(callback).catch(err => console.error('Error in message subscription update:', err));
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error('Supabase Realtime channel error for messages');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
   },
 
+  async getUserChats(userId: string) {
+    const { data, error } = await supabase
+      .from('chats')
+      .select('*')
+      .contains('participants', [userId])
+      .order('updated_at', { ascending: false });
+
+    if (error) await handleSupabaseError(error, OperationType.GET, 'chats');
+    return data ? data.map(mapChatToCamel) : [];
+  },
+
   subscribeToUserChats(userId: string, callback: (chats: ChatSession[]) => void) {
     // Initial fetch
-    supabase.from('chats').select('*').contains('participants', [userId]).order('updated_at', { ascending: false }).then(({ data }) => {
-      if (data) callback(data.map(mapChatToCamel));
-    });
+    this.getUserChats(userId).then(callback).catch(err => console.error('Error in initial chat fetch:', err));
 
     // Subscribe to changes
     const channel = supabase
       .channel(`user-chats-${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, async () => {
-        const { data } = await supabase.from('chats').select('*').contains('participants', [userId]).order('updated_at', { ascending: false });
-        if (data) callback(data.map(mapChatToCamel));
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'chats' 
+      }, () => {
+        this.getUserChats(userId).then(callback).catch(err => console.error('Error in chat subscription update:', err));
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error('Supabase Realtime channel error for chats');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);

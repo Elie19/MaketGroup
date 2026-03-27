@@ -11,8 +11,22 @@ async function startServer() {
   const PORT = 3000;
 
   // API routes
+  app.use((req, res, next) => {
+    res.setHeader('x-app-version', '1.0.0-mvp');
+    next();
+  });
+
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  app.get("/api/live", (req, res) => {
+    res.json({ status: "alive", timestamp: new Date().toISOString() });
+  });
+
+  app.get("/api/ready", (req, res) => {
+    // In a real app, we'd check DB connectivity here
+    res.json({ status: "ready", timestamp: new Date().toISOString() });
   });
 
   // Vite middleware for development

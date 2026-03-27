@@ -1,16 +1,28 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 import { useThemeStore } from './store/useThemeStore';
 import { Navbar } from './components/Navbar';
-import { Home } from './pages/Home';
-import { Messaging } from './pages/Messaging';
-import { Groups } from './pages/Groups';
-import { Profile } from './pages/Profile';
-import { AdDetail } from './pages/AdDetail';
-import { CreateAd } from './pages/CreateAd';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
+
+// Lazy load pages
+const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })));
+const Messaging = lazy(() => import('./pages/Messaging').then(m => ({ default: m.Messaging })));
+const Groups = lazy(() => import('./pages/Groups').then(m => ({ default: m.Groups })));
+const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
+const AdDetail = lazy(() => import('./pages/AdDetail').then(m => ({ default: m.AdDetail })));
+const CreateAd = lazy(() => import('./pages/CreateAd').then(m => ({ default: m.CreateAd })));
+
+const PageLoader = () => (
+  <div className="flex h-[60vh] w-full items-center justify-center">
+    <motion.div
+      animate={{ rotate: 360 }}
+      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+      className="h-8 w-8 rounded-full border-2 border-emerald-500 border-t-transparent"
+    />
+  </div>
+);
 
 export default function App() {
   const { init, initialized, loading } = useAuthStore();
@@ -21,13 +33,11 @@ export default function App() {
   }, [init]);
 
   useEffect(() => {
-    console.log('Applying theme:', theme);
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-    console.log('Document class list:', document.documentElement.classList.toString());
   }, [theme]);
 
   if (!initialized && loading) {
@@ -51,17 +61,19 @@ export default function App() {
       )}>
         <Navbar />
         <main className="mx-auto max-w-7xl px-4 py-8">
-          <AnimatePresence mode="wait">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/messages" element={<Messaging />} />
-              <Route path="/groups" element={<Groups />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/profile/:userId" element={<Profile />} />
-              <Route path="/ad/:id" element={<AdDetail />} />
-              <Route path="/create-ad" element={<CreateAd />} />
-            </Routes>
-          </AnimatePresence>
+          <Suspense fallback={<PageLoader />}>
+            <AnimatePresence mode="wait">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/messages" element={<Messaging />} />
+                <Route path="/groups" element={<Groups />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/profile/:userId" element={<Profile />} />
+                <Route path="/ad/:id" element={<AdDetail />} />
+                <Route path="/create-ad" element={<CreateAd />} />
+              </Routes>
+            </AnimatePresence>
+          </Suspense>
         </main>
         
         {/* Footer */}

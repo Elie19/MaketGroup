@@ -37,37 +37,64 @@ export const AdDetail = () => {
   const [guestInfo, setGuestInfo] = useState({ name: '', email: '' });
   const [paymentMethod, setPaymentMethod] = useState<'mtn' | 'moov' | 'cash' | 'card'>('mtn');
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     if (id) {
       adService.getAd(id).then(async (data) => {
         setAd(data);
         if (data) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('uid', data.authorId)
-            .single();
-          
-          if (profile) {
-            setSeller({
-              uid: profile.uid,
-              displayName: profile.display_name,
-              email: profile.email,
-              photoURL: profile.photo_url,
-              bio: profile.bio,
-              location: profile.location,
-              role: profile.role,
-              createdAt: profile.created_at,
-              averageRating: profile.average_rating,
-              totalReviews: profile.total_reviews
-            });
+          if (user) {
+            try {
+              const favs = await adService.getUserFavorites(user.id);
+              setIsFavorite(favs.some(f => f.id === data.id));
+            } catch (err) {
+              console.error('Error fetching favorites:', err);
+            }
+          }
+          try {
+            const { data: profile, error } = await supabase
+              .from('users')
+              .select('*')
+              .eq('uid', data.authorId)
+              .single();
+            
+            if (error && error.code !== 'PGRST116') {
+              console.error('Error fetching seller profile:', error);
+            }
+
+            if (profile) {
+              setSeller({
+                uid: profile.uid,
+                displayName: profile.display_name,
+                email: profile.email,
+                photoURL: profile.photo_url,
+                bio: profile.bio,
+                location: profile.location,
+                role: profile.role,
+                createdAt: profile.created_at,
+                averageRating: profile.average_rating,
+                totalReviews: profile.total_reviews
+              });
+            }
+          } catch (err) {
+            console.error('Unexpected error fetching seller profile:', err);
           }
         }
         setLoading(false);
+      }).catch(err => {
+        console.error('Error fetching ad:', err);
+        setLoading(false);
       });
     }
-  }, [id]);
+  }, [id, user]);
+
+  const handleToggleFavorite = async () => {
+    if (!user || !ad) return;
+    const newStatus = !isFavorite;
+    setIsFavorite(newStatus);
+    await adService.toggleFavorite(user.id, ad.id, !newStatus);
+  };
 
   const handlePurchase = async () => {
     if (!ad) return;
@@ -300,9 +327,17 @@ export const AdDetail = () => {
               <MessageCircle className="h-5 w-5" />
               Contacter le vendeur
             </button>
-            <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 py-4 font-bold text-zinc-900 transition-colors hover:bg-zinc-50 dark:border-white/10 dark:text-white dark:hover:bg-white/5">
-              <Heart className="h-5 w-5" />
-              Ajouter aux favoris
+            <button 
+              onClick={handleToggleFavorite}
+              className={cn(
+                "flex w-full items-center justify-center gap-2 rounded-xl border py-4 font-bold transition-all",
+                isFavorite 
+                  ? "border-emerald-500 bg-emerald-500 text-black" 
+                  : "border-zinc-200 text-zinc-900 hover:bg-zinc-50 dark:border-white/10 dark:text-white dark:hover:bg-white/5"
+              )}
+            >
+              <Heart className={cn("h-5 w-5", isFavorite && "fill-current")} />
+              {isFavorite ? 'Dans vos favoris' : 'Ajouter aux favoris'}
             </button>
             {isAuthor && (
               <button
