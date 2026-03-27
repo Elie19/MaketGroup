@@ -3,10 +3,12 @@ import { groupService } from '../services/groupService';
 import { useAuthStore } from '../store/useAuthStore';
 import { ChatGroup } from '../types';
 import { motion } from 'motion/react';
-import { Users, Plus, Search, MessageSquare, ArrowRight } from 'lucide-react';
+import { Users, Plus, Search, MessageSquare, ArrowRight, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export const Groups = () => {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [groups, setGroups] = useState<ChatGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -42,6 +44,17 @@ export const Groups = () => {
       await groupService.joinGroup(groupId, user.id);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce groupe ?') || !user) return;
+    try {
+      await groupService.deleteGroup(groupId, user.id);
+      alert('Groupe supprimé avec succès');
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      alert('Erreur lors de la suppression du groupe');
     }
   };
 
@@ -88,10 +101,24 @@ export const Groups = () => {
                     {group.members.length} membres
                   </div>
                   {group.members.includes(user?.id || '') ? (
-                    <button className="flex items-center gap-2 text-sm font-bold text-emerald-500">
-                      Voir le Chat
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {group.adminId === user?.id && (
+                        <button
+                          onClick={() => handleDeleteGroup(group.id)}
+                          className="rounded-lg bg-red-500/10 p-2 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+                          title="Supprimer le groupe"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => navigate('/messages')}
+                        className="flex items-center gap-2 text-sm font-bold text-emerald-500"
+                      >
+                        Voir le Chat
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={() => handleJoin(group.id)}

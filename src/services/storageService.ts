@@ -29,5 +29,12 @@ export const storageService = {
     const fileName = `${Math.random()}.${fileExt}`;
     const filePath = `${userId}/${fileName}`;
     return this.uploadFile('ads', filePath, file);
+  },
+
+  async uploadProfilePhoto(file: File, userId: string) {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `profile.${fileExt}`;
+    const filePath = `${userId}/${fileName}`;
+    return this.uploadFile('users', filePath, file);
   }
 };

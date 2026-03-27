@@ -61,6 +61,36 @@ export const groupService = {
     }
   },
 
+  async addMember(groupId: string, userId: string, adminId: string) {
+    const { data: group } = await supabase.from(GROUPS_TABLE).select('members, admin_id').eq('id', groupId).single();
+    if (group) {
+      if (group.admin_id !== adminId) throw new Error('Seul l\'administrateur peut ajouter des membres.');
+      if (group.members.includes(userId)) return;
+      const members = [...group.members, userId];
+      const { error } = await supabase.from(GROUPS_TABLE).update({ members }).eq('id', groupId);
+      if (error) await handleSupabaseError(error, OperationType.UPDATE, `${GROUPS_TABLE}/${groupId}`);
+    }
+  },
+
+  async removeMember(groupId: string, userId: string, adminId: string) {
+    const { data: group } = await supabase.from(GROUPS_TABLE).select('members, admin_id').eq('id', groupId).single();
+    if (group) {
+      if (group.admin_id !== adminId) throw new Error('Seul l\'administrateur peut retirer des membres.');
+      const members = group.members.filter((id: string) => id !== userId);
+      const { error } = await supabase.from(GROUPS_TABLE).update({ members }).eq('id', groupId);
+      if (error) await handleSupabaseError(error, OperationType.UPDATE, `${GROUPS_TABLE}/${groupId}`);
+    }
+  },
+
+  async deleteGroup(groupId: string, adminId: string) {
+    const { data: group } = await supabase.from(GROUPS_TABLE).select('admin_id').eq('id', groupId).single();
+    if (group) {
+      if (group.admin_id !== adminId) throw new Error('Seul l\'administrateur peut supprimer le groupe.');
+      const { error } = await supabase.from(GROUPS_TABLE).delete().eq('id', groupId);
+      if (error) await handleSupabaseError(error, OperationType.DELETE, `${GROUPS_TABLE}/${groupId}`);
+    }
+  },
+
   subscribeToGroups(callback: (groups: ChatGroup[]) => void) {
     // Initial fetch
     supabase.from(GROUPS_TABLE).select('*').order('created_at', { ascending: false }).then(({ data }) => {

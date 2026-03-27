@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { adService } from '../services/adService';
@@ -9,16 +9,18 @@ import { motion, AnimatePresence } from 'motion/react';
 import { User, Mail, MapPin, Calendar, Settings, Shield, LogIn, Package, Star, LogOut, Camera, Save, X, History } from 'lucide-react';
 import { supabase } from '../supabase';
 import { cn } from '../lib/utils';
+import { storageService } from '../services/storageService';
 
 export const Profile = () => {
   const { userId } = useParams();
-  const { user, profile: myProfile, loading: authLoading, signOut } = useAuthStore();
+  const { user, profile: myProfile, loading: authLoading, signOut, setProfile } = useAuthStore();
   const [targetProfile, setTargetProfile] = useState<UserProfile | null>(null);
   const [ads, setAds] = useState<AdListing[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [purchases, setPurchases] = useState<Transaction[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState<string | null>(null);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
   const [isEditing, setIsEditing] = useState(false);
@@ -27,6 +29,8 @@ export const Profile = () => {
     location: '',
     bio: ''
   });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isOwnProfile = !userId || userId === user?.id;
   const effectiveUserId = userId || user?.id;
@@ -129,10 +133,56 @@ export const Profile = () => {
         .eq('uid', user.id);
       
       if (error) throw error;
+      
+      // Update local state in store
+      if (myProfile) {
+        setProfile({
+          ...myProfile,
+          displayName: editData.displayName,
+          location: editData.location,
+          bio: editData.bio
+        });
+      }
+      
       setIsEditing(false);
-      window.location.reload(); 
+      // Removed reload to avoid flickering
+      setTargetProfile(prev => prev ? {
+        ...prev,
+        displayName: editData.displayName,
+        location: editData.location,
+        bio: editData.bio
+      } : null);
     } catch (error) {
       console.error('Error updating profile:', error);
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      const photoURL = await storageService.uploadProfilePhoto(file, user.id);
+      
+      const { error } = await supabase
+        .from('users')
+        .update({ photo_url: photoURL })
+        .eq('uid', user.id);
+      
+      if (error) throw error;
+
+      // Update local state
+      if (myProfile) {
+        setProfile({ ...myProfile, photoURL });
+      }
+      setTargetProfile(prev => prev ? { ...prev, photoURL } : null);
+      alert('Photo de profil mise à jour !');
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      alert('Erreur lors de l\'upload de la photo. Assurez-vous que le bucket "users" existe.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -267,16 +317,37 @@ export const Profile = () => {
         <div className="flex flex-col items-center gap-6 md:flex-row">
           <div className="relative">
             <div className="h-32 w-32 overflow-hidden rounded-2xl border-4 border-zinc-100 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
-              {targetProfile.photoURL ? (
+              {uploading ? (
+                <div className="flex h-full w-full items-center justify-center">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="h-8 w-8 rounded-full border-2 border-emerald-500 border-t-transparent"
+                  />
+                </div>
+              ) : targetProfile.photoURL ? (
                 <img src={targetProfile.photoURL} alt={targetProfile.displayName || ''} className="h-full w-full object-cover" />
               ) : (
                 <User className="h-full w-full p-6 text-zinc-400 dark:text-zinc-600" />
               )}
             </div>
             {isOwnProfile && (
-              <button className="absolute -bottom-2 -right-2 rounded-lg bg-emerald-500 p-2 text-black shadow-lg">
-                <Camera className="h-4 w-4" />
-              </button>
+              <>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handlePhotoUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="absolute -bottom-2 -right-2 rounded-lg bg-emerald-500 p-2 text-black shadow-lg transition-transform hover:scale-110 active:scale-95 disabled:opacity-50"
+                >
+                  <Camera className="h-4 w-4" />
+                </button>
+              </>
             )}
           </div>
           <div className="flex-1 text-center md:text-left">

@@ -13,7 +13,8 @@ import {
   LogIn,
   Search,
   Sun,
-  Moon
+  Moon,
+  ShieldCheck
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
@@ -126,6 +127,12 @@ export const Navbar = () => {
                     <User className="h-4 w-4" />
                     Profil
                   </Link>
+                  {profile?.role === 'admin' && (
+                    <Link to="/admin/reports" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-400/10">
+                      <ShieldCheck className="h-4 w-4" />
+                      Administration
+                    </Link>
+                  )}
                   <button
                     onClick={handleLogout}
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-400/10"

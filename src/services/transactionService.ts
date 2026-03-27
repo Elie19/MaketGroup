@@ -16,7 +16,7 @@ export const transactionService = {
     });
 
     if (error) await handleSupabaseError(error, OperationType.WRITE, 'transactions');
-     if (!data) return [];
+    
     return data;
   },
 

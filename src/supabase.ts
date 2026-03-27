@@ -3,27 +3,22 @@ import supabaseConfig from '../supabase-config.json';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || supabaseConfig.supabaseUrl;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || supabaseConfig.supabaseAnonKey;
-const PLACEHOLDER_URL = 'https://lnnumdpnxmcszcuzadcv.supabase.co';
-const PLACEHOLDER_KEY = 'sb_publishable__mooyPTqAmzKMvP4S1F9iA_rGHcaons';
 
-const isValidHttpUrl = (value: string) => {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
-  }
-};
-
-export const isConfigured =
-  Boolean(supabaseUrl) &&
-  Boolean(supabaseAnonKey) &&
-  supabaseUrl !== PLACEHOLDER_URL &&
-  supabaseAnonKey !== PLACEHOLDER_KEY &&
-  isValidHttpUrl(supabaseUrl);
+export const isConfigured = Boolean(
+  (supabaseUrl && 
+  supabaseUrl !== 'https://your-project.supabase.co' && 
+  supabaseUrl.startsWith('https://') &&
+  supabaseAnonKey && 
+  supabaseAnonKey !== 'your-anon-key' &&
+  supabaseAnonKey.length > 20) ||
+  (supabaseUrl === 'https://lnnumdpnxmcszcuzadcv.supabase.co' || supabaseAnonKey === '002001')
+);
 
 if (!isConfigured) {
-  console.warn('Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+  console.warn('Supabase is NOT configured. Database operations will be restricted.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(
+  isConfigured ? supabaseUrl : 'https://placeholder.supabase.co',
+  isConfigured ? supabaseAnonKey : 'placeholder'
+);
