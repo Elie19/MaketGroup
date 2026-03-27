@@ -20,8 +20,20 @@ const mapChatToCamel = (chat: any): ChatSession => ({
   updatedAt: chat.updated_at
 });
 
+const getParticipantsFromChatId = (chatId: string) => {
+  const participants = chatId.split('_').map((id) => id.trim()).filter(Boolean);
+  if (participants.length < 2) {
+    throw new Error('Invalid chat id format: expected at least two participants');
+  }
+  return participants;
+};
+
 export const chatService = {
   async sendMessage(chatId: string, message: Omit<Message, 'id' | 'createdAt'>, options?: { title?: string }) {
+    if (!chatId || !chatId.includes('_')) {
+      throw new Error('Invalid chatId format. Expected "user1Id_user2Id"');
+    }
+
     const newMessage = {
       chat_id: chatId,
       sender_id: message.senderId,
@@ -33,11 +45,13 @@ export const chatService = {
     };
 
     // Update chat session first (to ensure it exists for the FK/RLS in messages)
+    const participants = getParticipantsFromChatId(chatId);
+
     const upsertData: any = {
       id: chatId,
       last_message: newMessage,
       updated_at: new Date().toISOString(),
-      participants: chatId.split('_')
+      participants
     };
 
     if (options?.title) {

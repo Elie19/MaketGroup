@@ -33,10 +33,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   setUser: (user) => set({ user }),
   setProfile: (profile) => set({ profile }),
   init: () => {
-    console.log('Initializing Auth Store...');
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session);
       const user = session?.user ?? null;
       set({ user, loading: !!user });
       if (user) {
@@ -47,8 +45,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
 
     // Listen for auth changes
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change event:', event, session);
+    supabase.auth.onAuthStateChange(async (_event, session) => {
       const user = session?.user ?? null;
       set({ user, loading: !!user });
       if (user) {

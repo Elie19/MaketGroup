@@ -16,7 +16,7 @@ export const transactionService = {
     });
 
     if (error) await handleSupabaseError(error, OperationType.WRITE, 'transactions');
-    
+     if (!data) return [];
     return data;
   },
 
@@ -29,6 +29,8 @@ export const transactionService = {
 
     if (error) await handleSupabaseError(error, OperationType.GET, 'transactions');
     
+    if (!data) return [];
+
     return data.map((t: any) => ({
       id: t.id,
       adId: t.ad_id,
