@@ -1,6 +1,6 @@
 {
-  "name": "Lumina - Ads & Discussions",
-  "description": "A modern platform for publishing ads, real-time messaging, and community discussion groups.",
+  "name": "MaketGroup",
+  "description": "Une plateforme moderne pour la publication d'annonces, les achats invités, l'historique des ventes et les évaluations des vendeurs.",
   "requestFramePermissions": [
     "camera",
     "microphone",
